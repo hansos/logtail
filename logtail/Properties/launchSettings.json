@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "logtail": {
+      "commandName": "Project",
+      "commandLineArgs": "--file D:\\LogFiles\\PhotoFlow\\PhotoFlow-20260112.log  --level DBUG,EROR --tail 100 --rfefreshrate 30",
+      "commandLineArgs_2": "--file D:\\LogFiles\\PhotoFlow\\PhotoFlow-20260112.log  --filter MediaDeviceTools --tail 100 --rfefreshrate 30"
+
+    }
+  }
+}
