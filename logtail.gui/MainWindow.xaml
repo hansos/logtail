@@ -48,7 +48,7 @@
     
     <DockPanel>
         <!-- Top Menu -->
-        <Menu DockPanel.Dock="Top" Background="#2D2D30">
+        <Menu DockPanel.Dock="Top" Background="#2D2D30" Padding="0,5,0,5">
             <MenuItem Header="_File">
                 <MenuItem.Resources>
                     <Style TargetType="Menu">
