@@ -119,6 +119,12 @@ public class VisualStudioLauncher
             
             if (window != null)
             {
+                // Wait a bit for the document to fully load
+                System.Threading.Thread.Sleep(100);
+                
+                // Ensure the window is activated
+                window.Activate();
+                
                 // Navigate to the specific line
                 var textSelection = dte.ActiveDocument.Selection;
                 textSelection.GotoLine(lineNumber, true);
