@@ -111,6 +111,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/hansos/logtail/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/hansos/logtail/discussions)
+- **Releases**: [GitHub Releases](https://github.com/hansos/logtail/releases)
 
 ---
 
