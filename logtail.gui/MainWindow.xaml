@@ -77,9 +77,10 @@
                         <Setter Property="BorderThickness" Value="1"/>
                     </Style>
                 </MenuItem.Resources>
-                <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}"/>
                 <MenuItem Header="_Filter..." Command="{Binding FilterCommand}"/>
                 <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}"/>
+                <Separator/>
+                <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}"/>
             </MenuItem>
         </Menu>
 
