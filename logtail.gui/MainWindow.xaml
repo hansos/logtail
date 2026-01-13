@@ -7,6 +7,9 @@
         mc:Ignorable="d"
         Title="LogTail Viewer" Height="600" Width="1000"
         Background="#1E1E1E">
+    <Window.InputBindings>
+        <KeyBinding Key="F1" Command="{Binding AboutCommand}"/>
+    </Window.InputBindings>
     <Window.Style>
         <Style TargetType="Window">
             <Style.Triggers>
@@ -81,6 +84,15 @@
                 <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}"/>
                 <Separator/>
                 <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem.Resources>
+                    <Style TargetType="Menu">
+                        <Setter Property="BorderBrush" Value="White"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                    </Style>
+                </MenuItem.Resources>
+                <MenuItem Header="_About" Command="{Binding AboutCommand}" InputGestureText="F1"/>
             </MenuItem>
         </Menu>
 

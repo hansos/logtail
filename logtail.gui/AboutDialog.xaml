@@ -1,0 +1,98 @@
+<Window x:Class="logtail.gui.AboutDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:logtail.gui"
+        mc:Ignorable="d"
+        Title="About LogTail" Height="500" Width="600"
+        Background="#1E1E1E"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="0,5"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Padding" Value="5"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,5"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1177BB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Margin" Value="0,5"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Application Name -->
+        <StackPanel Grid.Row="0" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,10,0,20">
+            <TextBlock Text="{Binding ApplicationName}" 
+                      FontSize="28" 
+                      FontWeight="Bold"
+                      HorizontalAlignment="Center"
+                      Foreground="#007ACC"/>
+        </StackPanel>
+
+        <!-- Version -->
+        <TextBlock Grid.Row="1" 
+                  Text="{Binding Version}" 
+                  FontSize="14"
+                  HorizontalAlignment="Center"
+                  Margin="0,0,0,15"/>
+
+        <!-- Description -->
+        <GroupBox Grid.Row="2" Header="Description" Padding="10">
+            <TextBlock Text="{Binding Description}" 
+                      FontSize="12"
+                      LineHeight="18"/>
+        </GroupBox>
+
+        <!-- License -->
+        <GroupBox Grid.Row="3" Header="License" Padding="10" Margin="0,10,0,0">
+            <TextBox Text="{Binding LicenseText, Mode=OneWay}"
+                    FontFamily="Consolas"
+                    FontSize="10"/>
+        </GroupBox>
+
+        <!-- Close Button -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
+            <Button Content="Close" 
+                   Click="Close_Click" 
+                   Width="100"
+                   IsDefault="True"
+                   IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

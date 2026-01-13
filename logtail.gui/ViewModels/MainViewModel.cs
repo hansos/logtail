@@ -87,6 +87,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand SettingsCommand { get; }
     public ICommand ExitCommand { get; }
     public ICommand OpenRecentFileCommand { get; }
+    public ICommand AboutCommand { get; }
 
     public MainViewModel()
     {
@@ -135,6 +136,7 @@ public class MainViewModel : INotifyPropertyChanged
         SettingsCommand = new RelayCommand(ShowSettingsDialog);
         ExitCommand = new RelayCommand(_ => Application.Current.Shutdown());
         OpenRecentFileCommand = new RelayCommand(OpenRecentFile);
+        AboutCommand = new RelayCommand(ShowAboutDialog);
 
         LoadRecentFiles();
     }
@@ -303,6 +305,16 @@ public class MainViewModel : INotifyPropertyChanged
 
             _refreshTimer.Start();
         }
+    }
+
+    private void ShowAboutDialog(object? parameter)
+    {
+        var aboutViewModel = new AboutDialogViewModel();
+        var dialog = new AboutDialog(aboutViewModel)
+        {
+            Owner = Application.Current.MainWindow
+        };
+        dialog.ShowDialog();
     }
 
     private void ApplySourceFilter()
