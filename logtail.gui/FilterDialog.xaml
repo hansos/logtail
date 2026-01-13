@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:logtail.gui"
         mc:Ignorable="d"
-        Title="Filter Settings" Height="550" Width="500"
+        Title="Filter Settings" Height="450" Width="500"
         Background="#1E1E1E"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
@@ -57,8 +57,6 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Log Levels -->
@@ -97,43 +95,8 @@
             </ScrollViewer>
         </GroupBox>
 
-        <!-- Settings -->
-        <GroupBox Grid.Row="3" Header="Display Settings">
-            <Grid Margin="5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <Label Grid.Row="0" Grid.Column="0" Content="Tail lines:"/>
-                <TextBox Grid.Row="0" Grid.Column="1" 
-                         Text="{Binding TailLines, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="5,0"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" 
-                          Text="lines" 
-                          Foreground="Gray" 
-                          VerticalAlignment="Center"
-                          Margin="5,0"/>
-
-                <Label Grid.Row="1" Grid.Column="0" Content="Refresh rate:"/>
-                <TextBox Grid.Row="1" Grid.Column="1" 
-                         Text="{Binding RefreshRateSeconds, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="5,0"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" 
-                          Text="seconds" 
-                          Foreground="Gray" 
-                          VerticalAlignment="Center"
-                          Margin="5,0"/>
-            </Grid>
-        </GroupBox>
-
         <!-- Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Content="Apply" Click="Apply_Click" Width="80"/>
             <Button Content="Cancel" Click="Cancel_Click" Width="80"/>
         </StackPanel>

@@ -82,6 +82,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand OpenFileCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand FilterCommand { get; }
+    public ICommand SettingsCommand { get; }
     public ICommand ExitCommand { get; }
     public ICommand OpenRecentFileCommand { get; }
 
@@ -104,6 +105,7 @@ public class MainViewModel : INotifyPropertyChanged
         OpenFileCommand = new RelayCommand(OpenFile);
         RefreshCommand = new RelayCommand(Refresh);
         FilterCommand = new RelayCommand(ShowFilterDialog);
+        SettingsCommand = new RelayCommand(ShowSettingsDialog);
         ExitCommand = new RelayCommand(_ => Application.Current.Shutdown());
         OpenRecentFileCommand = new RelayCommand(OpenRecentFile);
 
@@ -232,12 +234,35 @@ public class MainViewModel : INotifyPropertyChanged
             filterViewModel.ApplyToOptions(_options);
             _selectedSources = filterViewModel.GetSelectedSources();
 
+            // Apply source filter to options
+            ApplySourceFilter();
+
+            // Refresh display
+            _previousOutput = null; // Force refresh
+            Refresh(null);
+        }
+    }
+
+    private void ShowSettingsDialog(object? parameter)
+    {
+        var settingsViewModel = new SettingsDialogViewModel();
+
+        // Load current options
+        settingsViewModel.LoadFromOptions(_options);
+
+        var dialog = new SettingsDialog(settingsViewModel)
+        {
+            Owner = Application.Current.MainWindow
+        };
+
+        if (dialog.ShowDialog() == true || dialog.WasApplied)
+        {
+            // Apply settings
+            settingsViewModel.ApplyToOptions(_options);
+
             // Update timer interval
             _refreshTimer.Stop();
             _refreshTimer.Interval = _options.RefreshRate;
-
-            // Apply source filter to options
-            ApplySourceFilter();
 
             // Refresh display
             _previousOutput = null; // Force refresh

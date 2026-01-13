@@ -8,8 +8,6 @@ namespace logtail.gui.ViewModels;
 public class FilterDialogViewModel : INotifyPropertyChanged
 {
     private string _messageFilter = string.Empty;
-    private int _tailLines = 100;
-    private int _refreshRateSeconds = 2;
 
     public ObservableCollection<LogLevelFilterItem> LogLevels { get; } = new()
     {
@@ -34,31 +32,9 @@ public class FilterDialogViewModel : INotifyPropertyChanged
         }
     }
 
-    public int TailLines
-    {
-        get => _tailLines;
-        set
-        {
-            _tailLines = value;
-            OnPropertyChanged();
-        }
-    }
-
-    public int RefreshRateSeconds
-    {
-        get => _refreshRateSeconds;
-        set
-        {
-            _refreshRateSeconds = value;
-            OnPropertyChanged();
-        }
-    }
-
     public void LoadFromOptions(LogTailOptions options)
     {
         MessageFilter = options.Filter ?? string.Empty;
-        TailLines = options.TailLines;
-        RefreshRateSeconds = (int)options.RefreshRate.TotalSeconds;
 
         // Update log level checkboxes
         foreach (var levelItem in LogLevels)
@@ -71,8 +47,6 @@ public class FilterDialogViewModel : INotifyPropertyChanged
     public void ApplyToOptions(LogTailOptions options)
     {
         options.Filter = string.IsNullOrWhiteSpace(MessageFilter) ? null : MessageFilter;
-        options.TailLines = TailLines;
-        options.RefreshRate = TimeSpan.FromSeconds(RefreshRateSeconds);
 
         // Update log levels
         options.Levels.Clear();
