@@ -24,6 +24,7 @@ public class MainViewModel : INotifyPropertyChanged
     private List<string>? _previousOutput;
     private HashSet<string> _availableSources = new();
     private HashSet<string> _selectedSources = new();
+    private bool _isBusy;
 
     public ObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
     public ObservableCollection<string> RecentFiles { get; } = new();
@@ -54,6 +55,16 @@ public class MainViewModel : INotifyPropertyChanged
         set
         {
             _logCount = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        set
+        {
+            _isBusy = value;
             OnPropertyChanged();
         }
     }
@@ -139,6 +150,8 @@ public class MainViewModel : INotifyPropertyChanged
                 return;
             }
 
+            IsBusy = true;
+
             var filtered = _logTailService.GetFilteredLogs(_options).ToList();
 
             if (_previousOutput == null || !filtered.SequenceEqual(_previousOutput))
@@ -175,6 +188,10 @@ public class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             StatusText = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
         }
     }
 
@@ -261,15 +278,23 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void OpenLogFile(string filePath)
     {
-        FilePath = filePath;
-        _availableSources.Clear();
-        _selectedSources.Clear();
-        _refreshTimer.Start();
-        Refresh(null);
+        IsBusy = true;
+        try
+        {
+            FilePath = filePath;
+            _availableSources.Clear();
+            _selectedSources.Clear();
+            _refreshTimer.Start();
+            Refresh(null);
 
-        // Add to recent files
-        _recentFilesManager.AddRecentFile(filePath);
-        LoadRecentFiles();
+            // Add to recent files
+            _recentFilesManager.AddRecentFile(filePath);
+            LoadRecentFiles();
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 
     private void LoadRecentFiles()

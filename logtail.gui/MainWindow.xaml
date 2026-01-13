@@ -7,6 +7,15 @@
         mc:Ignorable="d"
         Title="LogTail Viewer" Height="600" Width="1000"
         Background="#1E1E1E">
+    <Window.Style>
+        <Style TargetType="Window">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                    <Setter Property="Cursor" Value="Wait"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Style>
     <Window.Resources>
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="White"/>
