@@ -74,7 +74,7 @@
         </Menu>
 
         <!-- Bottom Status Bar -->
-        <StatusBar DockPanel.Dock="Bottom" Background="#007ACC" Height="25">
+        <StatusBar DockPanel.Dock="Bottom" Background="{Binding StatusBarBackground}" Height="25">
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusText}" Foreground="White" Padding="5,0"/>
             </StatusBarItem>

@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Threading;
 using LogTail.Core;
 using LogTail.Core.Models;
@@ -18,6 +19,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly RecentFilesManager _recentFilesManager;
     private LogTailOptions _options;
     private string _statusText = "Ready";
+    private Brush _statusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC"));
     private int _logCount;
     private List<string>? _previousOutput;
     private HashSet<string> _availableSources = new();
@@ -32,6 +34,16 @@ public class MainViewModel : INotifyPropertyChanged
         set
         {
             _statusText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public Brush StatusBarBackground
+    {
+        get => _statusBarBackground;
+        set
+        {
+            _statusBarBackground = value;
             OnPropertyChanged();
         }
     }

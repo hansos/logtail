@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using logtail.gui.ViewModels;
 
 namespace logtail.gui
@@ -45,7 +46,7 @@ namespace logtail.gui
             UpdateColumnWidths();
         }
 
-        private void LogListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private async void LogListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (LogListView.SelectedItem is not LogEntryViewModel selectedEntry)
                 return;
@@ -73,8 +74,21 @@ namespace logtail.gui
             // Copy to clipboard
             try
             {
+                // 1) Copy the existing text to a local variable
+                var originalStatusText = _viewModel.StatusText;
+                var originalBackground = _viewModel.StatusBarBackground;
+
+                // 2) Change the background color to a green one matching the default blue one
+                _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+
+                // 3) Write the new text
                 Clipboard.SetText(textToCopy);
                 _viewModel.StatusText = $"Copied {entriesToCopy.Count} line{(entriesToCopy.Count > 1 ? "s" : "")} to clipboard";
+
+                // 4) Wait for 5 seconds and reset color and text to the original one
+                await Task.Delay(2500);
+                _viewModel.StatusBarBackground = originalBackground;
+                _viewModel.StatusText = originalStatusText;
             }
             catch (Exception ex)
             {
