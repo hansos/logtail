@@ -1,8 +1,10 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using logtail.gui.ViewModels;
+using logtail.gui.Services;
 
 namespace logtail.gui
 {
@@ -51,6 +53,27 @@ namespace logtail.gui
             if (LogListView.SelectedItem is not LogEntryViewModel selectedEntry)
                 return;
 
+            // Try to open file in Visual Studio if the log entry contains a file path
+            if (VisualStudioLauncher.TryExtractFileInfo(selectedEntry.Text, out string filePath, out int lineNumber))
+            {
+                var success = VisualStudioLauncher.OpenInVisualStudio(filePath, lineNumber);
+                
+                if (success)
+                {
+                    var originalStatusText = _viewModel.StatusText;
+                    var originalBackground = _viewModel.StatusBarBackground;
+
+                    _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+                    _viewModel.StatusText = $"Opening {Path.GetFileName(filePath)}:line {lineNumber} in Visual Studio";
+
+                    await Task.Delay(2500);
+                    _viewModel.StatusBarBackground = originalBackground;
+                    _viewModel.StatusText = originalStatusText;
+                    return;
+                }
+            }
+
+            // Fallback to clipboard copy behavior for entries with timestamps
             // Only process if the clicked item has a Timestamp
             if (string.IsNullOrWhiteSpace(selectedEntry.Timestamp))
                 return;

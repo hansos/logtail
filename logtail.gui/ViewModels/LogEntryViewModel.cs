@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Windows.Media;
 using LogTail.Core.Models;
 using LogTail.Core.Services;
@@ -6,12 +7,21 @@ namespace logtail.gui.ViewModels;
 
 public class LogEntryViewModel
 {
+    private static readonly Regex FilePathPattern = new(
+        @"(?:in\s+)?([a-zA-Z]:\\[^:]+\.cs):line\s+(\d+)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
     public string Text { get; set; } = string.Empty;
     public LogLevel? Level { get; set; }
     public string Timestamp { get; set; } = string.Empty;
     public string LevelText { get; set; } = string.Empty;
     public string Source { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    
+    public string? FilePath { get; private set; }
+    public int? LineNumber { get; private set; }
+    public bool HasFileReference => !string.IsNullOrEmpty(FilePath) && LineNumber.HasValue;
     
     public Brush Foreground => Level switch
     {
@@ -29,7 +39,7 @@ public class LogEntryViewModel
         var parser = new LogParser();
         var parsed = parser.ParseLogLine(line);
         
-        return new LogEntryViewModel
+        var viewModel = new LogEntryViewModel
         {
             Text = line,
             Timestamp = parsed.Timestamp,
@@ -38,6 +48,19 @@ public class LogEntryViewModel
             Message = parsed.Message,
             Level = ExtractLevel(parsed.Level)
         };
+
+        // Extract file path and line number if present
+        var match = FilePathPattern.Match(line);
+        if (match.Success)
+        {
+            viewModel.FilePath = match.Groups[1].Value;
+            if (int.TryParse(match.Groups[2].Value, out int lineNum))
+            {
+                viewModel.LineNumber = lineNum;
+            }
+        }
+
+        return viewModel;
     }
 
     private static LogLevel? ExtractLevel(string levelText)
