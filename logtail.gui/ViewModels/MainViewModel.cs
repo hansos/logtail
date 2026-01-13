@@ -9,6 +9,7 @@ using System.Windows.Threading;
 using LogTail.Core;
 using LogTail.Core.Models;
 using logtail.gui.Services;
+using logtail.gui.Models;
 
 namespace logtail.gui.ViewModels;
 
@@ -17,6 +18,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly LogTailService _logTailService;
     private readonly DispatcherTimer _refreshTimer;
     private readonly RecentFilesManager _recentFilesManager;
+    private readonly SettingsManager _settingsManager;
     private LogTailOptions _options;
     private string _statusText = "Ready";
     private Brush _statusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC"));
@@ -90,11 +92,36 @@ public class MainViewModel : INotifyPropertyChanged
     {
         _logTailService = new LogTailService();
         _recentFilesManager = new RecentFilesManager();
+        _settingsManager = new SettingsManager();
+        
+        // Load settings from disk
+        var settings = _settingsManager.LoadSettings();
+        
         _options = new LogTailOptions
         {
-            TailLines = 100,
-            RefreshRate = TimeSpan.FromSeconds(2)
+            TailLines = settings.Preferences.TailLines,
+            RefreshRate = TimeSpan.FromSeconds(settings.Preferences.RefreshRateSeconds),
+            FilePath = settings.Preferences.LastOpenedFile ?? string.Empty
         };
+
+        // Restore filter settings
+        if (settings.Filter.SelectedLevels.Count > 0)
+        {
+            foreach (var level in settings.Filter.SelectedLevels)
+            {
+                _options.Levels.Add(level);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.Filter.MessageFilter))
+        {
+            _options.Filter = settings.Filter.MessageFilter;
+        }
+
+        if (settings.Filter.SelectedSources.Count > 0)
+        {
+            _selectedSources = settings.Filter.SelectedSources.ToHashSet();
+        }
 
         _refreshTimer = new DispatcherTimer
         {
@@ -237,6 +264,9 @@ public class MainViewModel : INotifyPropertyChanged
             // Apply source filter to options
             ApplySourceFilter();
 
+            // Save filter settings
+            SaveFilterSettings();
+
             // Refresh display
             _previousOutput = null; // Force refresh
             Refresh(null);
@@ -263,6 +293,9 @@ public class MainViewModel : INotifyPropertyChanged
             // Update timer interval
             _refreshTimer.Stop();
             _refreshTimer.Interval = _options.RefreshRate;
+
+            // Save app preferences
+            SaveAppPreferences();
 
             // Refresh display
             _previousOutput = null; // Force refresh
@@ -315,6 +348,9 @@ public class MainViewModel : INotifyPropertyChanged
             // Add to recent files
             _recentFilesManager.AddRecentFile(filePath);
             LoadRecentFiles();
+
+            // Save the last opened file
+            SaveAppPreferences();
         }
         finally
         {
@@ -340,6 +376,40 @@ public class MainViewModel : INotifyPropertyChanged
         _options = options;
         _refreshTimer.Interval = options.RefreshRate;
         OnPropertyChanged(nameof(FilePath));
+    }
+
+    public ApplicationSettings GetCurrentSettings()
+    {
+        var settings = _settingsManager.GetCurrentSettings();
+        
+        // Update preferences from current state
+        settings.Preferences.TailLines = _options.TailLines;
+        settings.Preferences.RefreshRateSeconds = (int)_options.RefreshRate.TotalSeconds;
+        settings.Preferences.LastOpenedFile = string.IsNullOrWhiteSpace(_options.FilePath) ? null : _options.FilePath;
+
+        // Update filter settings
+        settings.Filter.SelectedLevels = _options.Levels.ToList();
+        settings.Filter.SelectedSources = _selectedSources.ToList();
+        settings.Filter.MessageFilter = _options.Filter;
+
+        return settings;
+    }
+
+    public void SaveSettings(ApplicationSettings settings)
+    {
+        _settingsManager.SaveSettings(settings);
+    }
+
+    private void SaveFilterSettings()
+    {
+        var settings = GetCurrentSettings();
+        _settingsManager.SaveSettings(settings);
+    }
+
+    private void SaveAppPreferences()
+    {
+        var settings = GetCurrentSettings();
+        _settingsManager.SaveSettings(settings);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

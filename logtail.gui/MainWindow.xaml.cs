@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using logtail.gui.ViewModels;
 using logtail.gui.Services;
+using logtail.gui.Models;
 
 namespace logtail.gui
 {
@@ -14,6 +15,7 @@ namespace logtail.gui
     public partial class MainWindow : Window
     {
         private readonly MainViewModel _viewModel;
+        private bool _isInitialized = false;
 
         public MainWindow()
         {
@@ -25,6 +27,8 @@ namespace logtail.gui
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
             SizeChanged += MainWindow_SizeChanged;
+            LocationChanged += MainWindow_LocationChanged;
+            StateChanged += MainWindow_StateChanged;
             
             _viewModel.LogEntries.CollectionChanged += (s, e) => 
             {
@@ -34,6 +38,43 @@ namespace logtail.gui
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            // Restore window state from settings
+            var settings = _viewModel.GetCurrentSettings();
+            
+            if (settings.Window.Width > 0 && settings.Window.Height > 0)
+            {
+                Width = settings.Window.Width;
+                Height = settings.Window.Height;
+            }
+
+            if (settings.Window.Left > 0 && settings.Window.Top > 0)
+            {
+                Left = settings.Window.Left;
+                Top = settings.Window.Top;
+            }
+
+            if (settings.Window.IsMaximized)
+            {
+                WindowState = WindowState.Maximized;
+            }
+
+            // Restore column widths if they were saved
+            if (LogListView?.View is GridView gridView && gridView.Columns.Count == 4)
+            {
+                if (!double.IsNaN(settings.Window.TimeColumnWidth) && settings.Window.TimeColumnWidth > 0)
+                    gridView.Columns[0].Width = settings.Window.TimeColumnWidth;
+                
+                if (!double.IsNaN(settings.Window.LevelColumnWidth) && settings.Window.LevelColumnWidth > 0)
+                    gridView.Columns[1].Width = settings.Window.LevelColumnWidth;
+                
+                if (!double.IsNaN(settings.Window.SourceColumnWidth) && settings.Window.SourceColumnWidth > 0)
+                    gridView.Columns[2].Width = settings.Window.SourceColumnWidth;
+                
+                if (!double.IsNaN(settings.Window.MessageColumnWidth) && settings.Window.MessageColumnWidth > 0)
+                    gridView.Columns[3].Width = settings.Window.MessageColumnWidth;
+            }
+
+            _isInitialized = true;
             _viewModel.Start();
             UpdateColumnWidths();
         }
@@ -41,11 +82,59 @@ namespace logtail.gui
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             _viewModel.Stop();
+            SaveWindowState();
         }
 
         private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             UpdateColumnWidths();
+            
+            if (_isInitialized && WindowState == WindowState.Normal)
+            {
+                SaveWindowState();
+            }
+        }
+
+        private void MainWindow_LocationChanged(object? sender, EventArgs e)
+        {
+            if (_isInitialized && WindowState == WindowState.Normal)
+            {
+                SaveWindowState();
+            }
+        }
+
+        private void MainWindow_StateChanged(object? sender, EventArgs e)
+        {
+            if (_isInitialized)
+            {
+                SaveWindowState();
+            }
+        }
+
+        private void SaveWindowState()
+        {
+            var settings = _viewModel.GetCurrentSettings();
+            
+            settings.Window.IsMaximized = WindowState == WindowState.Maximized;
+            
+            if (WindowState == WindowState.Normal)
+            {
+                settings.Window.Width = Width;
+                settings.Window.Height = Height;
+                settings.Window.Left = Left;
+                settings.Window.Top = Top;
+            }
+
+            // Save column widths
+            if (LogListView?.View is GridView gridView && gridView.Columns.Count == 4)
+            {
+                settings.Window.TimeColumnWidth = gridView.Columns[0].ActualWidth;
+                settings.Window.LevelColumnWidth = gridView.Columns[1].ActualWidth;
+                settings.Window.SourceColumnWidth = gridView.Columns[2].ActualWidth;
+                settings.Window.MessageColumnWidth = gridView.Columns[3].ActualWidth;
+            }
+
+            _viewModel.SaveSettings(settings);
         }
 
         private async void LogListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
