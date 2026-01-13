@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using logtail.gui.ViewModels;
 
 namespace logtail.gui
@@ -42,6 +43,43 @@ namespace logtail.gui
         private void MainWindow_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             UpdateColumnWidths();
+        }
+
+        private void LogListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (LogListView.SelectedItem is not LogEntryViewModel selectedEntry)
+                return;
+
+            // Only process if the clicked item has a Timestamp
+            if (string.IsNullOrWhiteSpace(selectedEntry.Timestamp))
+                return;
+
+            var entriesToCopy = new List<LogEntryViewModel> { selectedEntry };
+            var selectedIndex = LogListView.SelectedIndex;
+
+            // Find all following entries without a Timestamp
+            for (int i = selectedIndex + 1; i < _viewModel.LogEntries.Count; i++)
+            {
+                var nextEntry = _viewModel.LogEntries[i];
+                if (!string.IsNullOrWhiteSpace(nextEntry.Timestamp))
+                    break;
+                
+                entriesToCopy.Add(nextEntry);
+            }
+
+            // Build the text to copy
+            var textToCopy = string.Join(Environment.NewLine, entriesToCopy.Select(entry => entry.Text));
+
+            // Copy to clipboard
+            try
+            {
+                Clipboard.SetText(textToCopy);
+                _viewModel.StatusText = $"Copied {entriesToCopy.Count} line{(entriesToCopy.Count > 1 ? "s" : "")} to clipboard";
+            }
+            catch (Exception ex)
+            {
+                _viewModel.StatusText = $"Error copying to clipboard: {ex.Message}";
+            }
         }
 
         private void UpdateColumnWidths()
