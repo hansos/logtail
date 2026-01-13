@@ -137,7 +137,7 @@ namespace logtail.gui
                                  gridView.Columns[1].ActualWidth + 
                                  gridView.Columns[2].ActualWidth;
             
-            var scrollBarWidth = 20; // Estimate for vertical scrollbar
+            var scrollBarWidth = 30; // Estimate for vertical scrollbar and padding
             var remainingWidth = LogListView.ActualWidth - totalFixedWidth - scrollBarWidth;
             
             // Set Message column to fill remaining space (minimum 200px)
