@@ -11,6 +11,11 @@
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style TargetType="{x:Type MenuItem}" x:Key="SubMenuStyle">
+            <Setter Property="BorderBrush" Value="White"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style TargetType="ListView">
             <Setter Property="Background" Value="#252526"/>
@@ -29,11 +34,23 @@
         <!-- Top Menu -->
         <Menu DockPanel.Dock="Top" Background="#2D2D30">
             <MenuItem Header="_File">
+                <MenuItem.Resources>
+                    <Style TargetType="Menu">
+                        <Setter Property="BorderBrush" Value="White"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                    </Style>
+                </MenuItem.Resources>
                 <MenuItem Header="_Open Log File..." Command="{Binding OpenFileCommand}"/>
                 <Separator/>
                 <MenuItem Header="_Exit" Command="{Binding ExitCommand}"/>
             </MenuItem>
             <MenuItem Header="_View">
+                <MenuItem.Resources>
+                    <Style TargetType="Menu">
+                        <Setter Property="BorderBrush" Value="White"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                    </Style>
+                </MenuItem.Resources>
                 <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}"/>
                 <MenuItem Header="_Filter..." Command="{Binding FilterCommand}"/>
             </MenuItem>
