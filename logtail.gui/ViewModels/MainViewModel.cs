@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using LogTail.Core;
 using LogTail.Core.Models;
+using logtail.gui.Services;
 
 namespace logtail.gui.ViewModels;
 
@@ -14,6 +15,7 @@ public class MainViewModel : INotifyPropertyChanged
 {
     private readonly LogTailService _logTailService;
     private readonly DispatcherTimer _refreshTimer;
+    private readonly RecentFilesManager _recentFilesManager;
     private LogTailOptions _options;
     private string _statusText = "Ready";
     private int _logCount;
@@ -22,6 +24,7 @@ public class MainViewModel : INotifyPropertyChanged
     private HashSet<string> _selectedSources = new();
 
     public ObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
+    public ObservableCollection<string> RecentFiles { get; } = new();
 
     public string StatusText
     {
@@ -57,10 +60,12 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand RefreshCommand { get; }
     public ICommand FilterCommand { get; }
     public ICommand ExitCommand { get; }
+    public ICommand OpenRecentFileCommand { get; }
 
     public MainViewModel()
     {
         _logTailService = new LogTailService();
+        _recentFilesManager = new RecentFilesManager();
         _options = new LogTailOptions
         {
             TailLines = 100,
@@ -77,6 +82,9 @@ public class MainViewModel : INotifyPropertyChanged
         RefreshCommand = new RelayCommand(Refresh);
         FilterCommand = new RelayCommand(ShowFilterDialog);
         ExitCommand = new RelayCommand(_ => Application.Current.Shutdown());
+        OpenRecentFileCommand = new RelayCommand(OpenRecentFile);
+
+        LoadRecentFiles();
     }
 
     public void Start()
@@ -216,11 +224,41 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (dialog.ShowDialog() == true)
         {
-            FilePath = dialog.FileName;
-            _availableSources.Clear();
-            _selectedSources.Clear();
-            _refreshTimer.Start();
-            Refresh(null);
+            OpenLogFile(dialog.FileName);
+        }
+    }
+
+    private void OpenRecentFile(object? parameter)
+    {
+        if (parameter is string filePath && File.Exists(filePath))
+        {
+            OpenLogFile(filePath);
+        }
+    }
+
+    private void OpenLogFile(string filePath)
+    {
+        FilePath = filePath;
+        _availableSources.Clear();
+        _selectedSources.Clear();
+        _refreshTimer.Start();
+        Refresh(null);
+
+        // Add to recent files
+        _recentFilesManager.AddRecentFile(filePath);
+        LoadRecentFiles();
+    }
+
+    private void LoadRecentFiles()
+    {
+        RecentFiles.Clear();
+        var recentFiles = _recentFilesManager.GetRecentFiles();
+        foreach (var file in recentFiles)
+        {
+            if (File.Exists(file))
+            {
+                RecentFiles.Add(file);
+            }
         }
     }
 

@@ -17,6 +17,13 @@
             <Setter Property="BorderBrush" Value="White"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
+        <Style TargetType="Separator">
+            <Setter Property="Background" Value="LightGray"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Padding" Value="2"/>
+        </Style>
         <Style TargetType="ListView">
             <Setter Property="Background" Value="#252526"/>
             <Setter Property="Foreground" Value="White"/>
@@ -41,6 +48,16 @@
                     </Style>
                 </MenuItem.Resources>
                 <MenuItem Header="_Open Log File..." Command="{Binding OpenFileCommand}"/>
+                <MenuItem Header="Recent Files" ItemsSource="{Binding RecentFiles}">
+                    <MenuItem.ItemContainerStyle>
+                        <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
+                            <Setter Property="Header" Value="{Binding}"/>
+                            <Setter Property="Command" Value="{Binding DataContext.OpenRecentFileCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+                            <Setter Property="CommandParameter" Value="{Binding}"/>
+                            <Setter Property="ToolTip" Value="{Binding}"/>
+                        </Style>
+                    </MenuItem.ItemContainerStyle>
+                </MenuItem>
                 <Separator/>
                 <MenuItem Header="_Exit" Command="{Binding ExitCommand}"/>
             </MenuItem>
@@ -115,9 +132,25 @@
                 <Style TargetType="ListViewItem">
                     <Setter Property="Background" Value="Transparent"/>
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="BorderThickness" Value="0,1,0,1"/>
+                    <Setter Property="BorderBrush" Value="Transparent"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListViewItem">
+                                <Border Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        Padding="{TemplateBinding Padding}">
+                                    <GridViewRowPresenter Content="{TemplateBinding Content}"
+                                                         Columns="{TemplateBinding GridView.ColumnCollection}"/>
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
                     <Style.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#3E3E42"/>
+                            <Setter Property="Background" Value="Navy"/>
+                            <Setter Property="BorderBrush" Value="LightBlue"/>
                         </Trigger>
                     </Style.Triggers>
                 </Style>
