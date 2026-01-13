@@ -89,6 +89,17 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void Start()
     {
+        // If no file is currently set, try to load the most recent file
+        if (string.IsNullOrEmpty(_options.FilePath))
+        {
+            var recentFiles = _recentFilesManager.GetRecentFiles();
+            if (recentFiles.Count > 0 && File.Exists(recentFiles[0]))
+            {
+                OpenLogFile(recentFiles[0]);
+                return;
+            }
+        }
+
         if (!string.IsNullOrEmpty(_options.FilePath) && File.Exists(_options.FilePath))
         {
             _refreshTimer.Start();
