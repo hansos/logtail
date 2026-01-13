@@ -137,7 +137,7 @@ namespace logtail.gui
                                  gridView.Columns[1].ActualWidth + 
                                  gridView.Columns[2].ActualWidth;
             
-            // Account for vertical scrollbar and additional padding
+            // Account for vertical scrollbar and additional padding (margins, borders, etc.)
             var scrollBarWidth = SystemParameters.VerticalScrollBarWidth + 10;
             var remainingWidth = LogListView.ActualWidth - totalFixedWidth - scrollBarWidth;
             
