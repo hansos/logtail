@@ -100,6 +100,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Support for compressed log files (.gz, .zip)
 - [ ] Regular expression filters
 - [ ] Bookmarks and annotations
+- [ ] Allow custom log formats via configuration
+- [ ] Store application settings between sessions
 
 ## Acknowledgments
 
