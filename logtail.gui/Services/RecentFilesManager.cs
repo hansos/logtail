@@ -55,6 +55,11 @@ public class RecentFilesManager
         SaveRecentFiles(recentFiles);
     }
 
+    public void ClearRecentFiles()
+    {
+        SaveRecentFiles(new List<string>());
+    }
+
     private void SaveRecentFiles(List<string> recentFiles)
     {
         try
