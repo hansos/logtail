@@ -10,6 +10,7 @@
     <Window.Resources>
         <Style TargetType="MenuItem">
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#2D2D30"/>
         </Style>
         <Style TargetType="ListView">
             <Setter Property="Background" Value="#252526"/>
