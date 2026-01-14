@@ -35,6 +35,7 @@ public class FilterSettings
     public List<string> SelectedLevels { get; set; } = new();
     public List<string> SelectedSources { get; set; } = new();
     public string? MessageFilter { get; set; }
+    public string LogFormatName { get; set; } = "Default";
 }
 
 public class AppPreferences

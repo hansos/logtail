@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using LogTail.Core;
 using LogTail.Core.Models;
+using LogTail.Core.Services;
 using logtail.gui.Services;
 using logtail.gui.Models;
 using logtail.gui.Collections;
@@ -17,6 +18,7 @@ namespace logtail.gui.ViewModels;
 public class MainViewModel : INotifyPropertyChanged
 {
     private readonly LogTailService _logTailService;
+    private readonly LogFormatService _logFormatService;
     private readonly DispatcherTimer _refreshTimer;
     private readonly RecentFilesManager _recentFilesManager;
     private readonly SettingsManager _settingsManager;
@@ -94,6 +96,7 @@ public class MainViewModel : INotifyPropertyChanged
     public MainViewModel()
     {
         _logTailService = new LogTailService();
+        _logFormatService = new LogFormatService();
         _recentFilesManager = new RecentFilesManager();
         _settingsManager = new SettingsManager();
         _fileMonitorService = new FileMonitorService();
@@ -108,8 +111,13 @@ public class MainViewModel : INotifyPropertyChanged
             TailLines = settings.Preferences.TailLines,
             RefreshRate = TimeSpan.FromSeconds(settings.Preferences.RefreshRateSeconds),
             FilePath = settings.Preferences.LastOpenedFile ?? string.Empty,
-            MonitoringMode = settings.Preferences.MonitoringMode
+            MonitoringMode = settings.Preferences.MonitoringMode,
+            LogFormatName = settings.Filter.LogFormatName
         };
+
+        // Apply the log format to the parser
+        var selectedFormat = _logFormatService.GetFormatByName(_options.LogFormatName) ?? _logFormatService.GetDefaultFormat();
+        _logTailService.Parser.SetFormat(selectedFormat);
 
         // Restore filter settings
         if (settings.Filter.SelectedLevels.Count > 0)
@@ -237,7 +245,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         foreach (var line in filtered)
         {
-            var entry = LogEntryViewModel.FromText(line);
+            var entry = LogEntryViewModel.FromText(line, _logTailService.Parser);
             
             if (!string.IsNullOrWhiteSpace(entry.Source))
             {
@@ -272,7 +280,7 @@ public class MainViewModel : INotifyPropertyChanged
         // Parse only the new lines
         foreach (var line in addedLines)
         {
-            var entry = LogEntryViewModel.FromText(line);
+            var entry = LogEntryViewModel.FromText(line, _logTailService.Parser);
             
             if (!string.IsNullOrWhiteSpace(entry.Source))
             {
@@ -366,6 +374,17 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var settingsViewModel = new SettingsDialogViewModel();
 
+        // Reload formats to pick up any changes to the logformats.json file
+        _logFormatService.ReloadFormats();
+
+        // Load available log formats
+        var formats = _logFormatService.GetAllFormats();
+        settingsViewModel.AvailableLogFormats.Clear();
+        foreach (var format in formats)
+        {
+            settingsViewModel.AvailableLogFormats.Add(format.Name);
+        }
+
         // Load current options
         settingsViewModel.LoadFromOptions(_options);
 
@@ -376,8 +395,18 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (dialog.ShowDialog() == true || dialog.WasApplied)
         {
+            // Check if log format changed
+            bool formatChanged = settingsViewModel.SelectedLogFormat != _options.LogFormatName;
+
             // Apply settings
             settingsViewModel.ApplyToOptions(_options);
+
+            // Update the parser if format changed
+            if (formatChanged)
+            {
+                var selectedFormat = _logFormatService.GetFormatByName(_options.LogFormatName) ?? _logFormatService.GetDefaultFormat();
+                _logTailService.Parser.SetFormat(selectedFormat);
+            }
 
             // Update timer interval
             _refreshTimer.Stop();
@@ -491,6 +520,7 @@ public class MainViewModel : INotifyPropertyChanged
         settings.Filter.SelectedLevels = _options.Levels.ToList();
         settings.Filter.SelectedSources = _selectedSources.ToList();
         settings.Filter.MessageFilter = _options.Filter;
+        settings.Filter.LogFormatName = _options.LogFormatName;
 
         return settings;
     }

@@ -1,0 +1,32 @@
+[
+  {
+    "Name": "Custom Format Example",
+    "Description": "Example of a custom log format",
+    "FullLogPattern": "^(?<timestamp>\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})\\s+\\[(?<level>[^\\]]+)\\]\\s+(?<source>[^\\s]+)\\s+(?<message>.*)$",
+    "LevelPattern": "\\[(?<level>TRACE|DEBUG|INFO|WARN|ERROR|FATAL)\\]",
+    "LevelMappings": {
+      "TRACE": "Verbose",
+      "DEBUG": "Debug",
+      "INFO": "Info",
+      "WARN": "Warning",
+      "ERROR": "Error",
+      "FATAL": "Fatal"
+    },
+    "IsBuiltIn": false
+  },
+  {
+    "Name": "ISO8601 Example",
+    "Description": "Another example showing multiple formats in the array",
+    "FullLogPattern": "^(?<timestamp>\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)\\s+\\[(?<level>[^\\]]+)\\]\\s+(?<source>[^\\s]+)\\s+(?<message>.*)$",
+    "LevelPattern": "\\[(?<level>TRACE|DEBUG|INFO|WARN|ERROR|FATAL)\\]",
+    "LevelMappings": {
+      "TRACE": "Verbose",
+      "DEBUG": "Debug",
+      "INFO": "Info",
+      "WARN": "Warning",
+      "ERROR": "Error",
+      "FATAL": "Fatal"
+    },
+    "IsBuiltIn": false
+  }
+]

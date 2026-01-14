@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:logtail.gui"
         mc:Ignorable="d"
-        Title="Settings" Height="250" Width="500"
+        Title="Settings" Height="400" Width="700"
         Background="#1E1E1E"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
@@ -21,6 +21,103 @@
             <Setter Property="BorderBrush" Value="#3E3E42"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Height" Value="25"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton"
+                                        Grid.Column="2"
+                                        Focusable="false"
+                                        IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                        ClickMode="Press"
+                                        Background="#252526"
+                                        BorderBrush="#3E3E42">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="20" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border x:Name="Border" Grid.ColumnSpan="2"
+                                                  Background="{TemplateBinding Background}"
+                                                  BorderBrush="{TemplateBinding BorderBrush}"
+                                                  BorderThickness="1" />
+                                            <Path x:Name="Arrow" Grid.Column="1"
+                                                Fill="White"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Data="M 0 0 L 4 4 L 8 0 Z"/>
+                                        </Grid>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter Name="ContentSite"
+                                            IsHitTestVisible="False"
+                                            Content="{TemplateBinding SelectionBoxItem}"
+                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                            ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                            Margin="5,3,23,3"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Left">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                            <Popup Name="Popup"
+                                 Placement="Bottom"
+                                 IsOpen="{TemplateBinding IsDropDownOpen}"
+                                 AllowsTransparency="True"
+                                 Focusable="False"
+                                 PopupAnimation="Slide">
+                                <Grid Name="DropDown"
+                                    SnapsToDevicePixels="True"
+                                    MinWidth="{TemplateBinding ActualWidth}"
+                                    MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder"
+                                          Background="#252526"
+                                          BorderThickness="1"
+                                          BorderBrush="#3E3E42"/>
+                                    <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border Name="Border" Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#0E639C"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#0E639C"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="Button">
             <Setter Property="Background" Value="#0E639C"/>
@@ -40,6 +137,10 @@
             <Setter Property="BorderBrush" Value="#3E3E42"/>
             <Setter Property="Margin" Value="0,5"/>
         </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5,2"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="15">
@@ -48,40 +149,73 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Display Settings -->
-        <GroupBox Grid.Row="0" Header="Display Settings">
-            <Grid Margin="5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+        <!-- Two-column layout for settings sections -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
 
-                <Label Grid.Row="0" Grid.Column="0" Content="Tail lines:"/>
-                <TextBox Grid.Row="0" Grid.Column="1" 
-                         Text="{Binding TailLines, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="5,0"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" 
-                          Text="lines" 
-                          Foreground="Gray" 
-                          VerticalAlignment="Center"
-                          Margin="5,0"/>
+            <!-- Left Column -->
+            <StackPanel Grid.Column="0">
+                <!-- Log Format -->
+                <GroupBox Header="Log Format">
+                    <StackPanel Margin="5">
+                        <Label Content="Select log format:"/>
+                        <ComboBox ItemsSource="{Binding AvailableLogFormats}"
+                                 SelectedItem="{Binding SelectedLogFormat}"/>
+                    </StackPanel>
+                </GroupBox>
 
-                <Label Grid.Row="1" Grid.Column="0" Content="Refresh rate:"/>
-                <TextBox Grid.Row="1" Grid.Column="1" 
-                         Text="{Binding RefreshRateSeconds, UpdateSourceTrigger=PropertyChanged}"
-                         Margin="5,0"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" 
-                          Text="seconds" 
-                          Foreground="Gray" 
-                          VerticalAlignment="Center"
-                          Margin="5,0"/>
-            </Grid>
-        </GroupBox>
+                <!-- Display Settings -->
+                <GroupBox Header="Display Settings">
+                    <Grid Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Label Grid.Row="0" Grid.Column="0" Content="Tail lines:"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" 
+                                 Text="{Binding TailLines, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="5,0"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" 
+                                  Text="lines" 
+                                  Foreground="Gray" 
+                                  VerticalAlignment="Center"
+                                  Margin="5,0"/>
+
+                        <Label Grid.Row="1" Grid.Column="0" Content="Refresh rate:"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" 
+                                 Text="{Binding RefreshRateSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="5,0"/>
+                        <TextBlock Grid.Row="1" Grid.Column="2" 
+                                  Text="seconds" 
+                                  Foreground="Gray" 
+                                  VerticalAlignment="Center"
+                                  Margin="5,0"/>
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+
+            <!-- Right Column -->
+            <StackPanel Grid.Column="2">
+                <!-- Monitoring Mode -->
+                <GroupBox Header="Monitoring Mode">
+                    <StackPanel Margin="5">
+                        <RadioButton Content="Auto (real-time for local files, polling for network)" IsChecked="{Binding IsAutoMode}"/>
+                        <RadioButton Content="Real-time only (FileSystemWatcher)" IsChecked="{Binding IsRealTimeMode}"/>
+                        <RadioButton Content="Polling only (timer)" IsChecked="{Binding IsPollingMode}"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </Grid>
 
         <!-- Buttons -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
