@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:logtail.gui"
         mc:Ignorable="d"
-        Title="Filter Settings" Height="450" Width="500"
+        Title="Filter Settings" Height="600" Width="500"
         Background="#1E1E1E"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
@@ -55,6 +55,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -80,8 +81,17 @@
             </StackPanel>
         </GroupBox>
 
+        <!-- Monitoring Mode -->
+        <GroupBox Grid.Row="2" Header="Monitoring Mode">
+            <StackPanel Margin="5">
+                <RadioButton Content="Auto (real-time for local files, polling for network)" IsChecked="{Binding IsAutoMode}" Foreground="White" Margin="5,2"/>
+                <RadioButton Content="Real-time only (FileSystemWatcher)" IsChecked="{Binding IsRealTimeMode}" Foreground="White" Margin="5,2"/>
+                <RadioButton Content="Polling only (timer)" IsChecked="{Binding IsPollingMode}" Foreground="White" Margin="5,2"/>
+            </StackPanel>
+        </GroupBox>
+
         <!-- Sources -->
-        <GroupBox Grid.Row="2" Header="Sources">
+        <GroupBox Grid.Row="3" Header="Sources" Height="170">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Sources}" Margin="5">
                     <ItemsControl.ItemTemplate>
@@ -96,7 +106,7 @@
         </GroupBox>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Content="Apply" Click="Apply_Click" Width="80"/>
             <Button Content="Cancel" Click="Cancel_Click" Width="80"/>
         </StackPanel>

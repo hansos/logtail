@@ -7,4 +7,12 @@ public sealed class LogTailOptions
     public HashSet<string> Levels { get; set; } = new();
     public string? Filter { get; set; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromSeconds(5);
+    public MonitoringMode MonitoringMode { get; set; } = MonitoringMode.Auto;
+}
+
+public enum MonitoringMode
+{
+    Auto,
+    RealTimeOnly,
+    PollingOnly
 }

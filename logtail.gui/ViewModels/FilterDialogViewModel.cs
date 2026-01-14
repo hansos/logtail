@@ -8,6 +8,7 @@ namespace logtail.gui.ViewModels;
 public class FilterDialogViewModel : INotifyPropertyChanged
 {
     private string _messageFilter = string.Empty;
+    private MonitoringMode _monitoringMode = MonitoringMode.Auto;
 
     public ObservableCollection<LogLevelFilterItem> LogLevels { get; } = new()
     {
@@ -32,9 +33,59 @@ public class FilterDialogViewModel : INotifyPropertyChanged
         }
     }
 
+    public MonitoringMode MonitoringMode
+    {
+        get => _monitoringMode;
+        set
+        {
+            _monitoringMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsAutoMode));
+            OnPropertyChanged(nameof(IsRealTimeMode));
+            OnPropertyChanged(nameof(IsPollingMode));
+        }
+    }
+
+    public bool IsAutoMode
+    {
+        get => MonitoringMode == MonitoringMode.Auto;
+        set
+        {
+            if (value)
+            {
+                MonitoringMode = MonitoringMode.Auto;
+            }
+        }
+    }
+
+    public bool IsRealTimeMode
+    {
+        get => MonitoringMode == MonitoringMode.RealTimeOnly;
+        set
+        {
+            if (value)
+            {
+                MonitoringMode = MonitoringMode.RealTimeOnly;
+            }
+        }
+    }
+
+    public bool IsPollingMode
+    {
+        get => MonitoringMode == MonitoringMode.PollingOnly;
+        set
+        {
+            if (value)
+            {
+                MonitoringMode = MonitoringMode.PollingOnly;
+            }
+        }
+    }
+
     public void LoadFromOptions(LogTailOptions options)
     {
         MessageFilter = options.Filter ?? string.Empty;
+        MonitoringMode = options.MonitoringMode;
 
         // Update log level checkboxes
         foreach (var levelItem in LogLevels)
@@ -47,6 +98,7 @@ public class FilterDialogViewModel : INotifyPropertyChanged
     public void ApplyToOptions(LogTailOptions options)
     {
         options.Filter = string.IsNullOrWhiteSpace(MessageFilter) ? null : MessageFilter;
+        options.MonitoringMode = MonitoringMode;
 
         // Update log levels
         options.Levels.Clear();

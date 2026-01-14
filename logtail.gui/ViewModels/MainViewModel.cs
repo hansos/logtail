@@ -20,6 +20,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly DispatcherTimer _refreshTimer;
     private readonly RecentFilesManager _recentFilesManager;
     private readonly SettingsManager _settingsManager;
+    private readonly FileMonitorService _fileMonitorService;
     private LogTailOptions _options;
     private string _statusText = "Ready";
     private Brush _statusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC"));
@@ -95,6 +96,9 @@ public class MainViewModel : INotifyPropertyChanged
         _logTailService = new LogTailService();
         _recentFilesManager = new RecentFilesManager();
         _settingsManager = new SettingsManager();
+        _fileMonitorService = new FileMonitorService();
+        _fileMonitorService.FileChanged += FileMonitorService_FileChanged;
+        _fileMonitorService.FileDeleted += FileMonitorService_FileDeleted;
         
         // Load settings from disk
         var settings = _settingsManager.LoadSettings();
@@ -103,7 +107,8 @@ public class MainViewModel : INotifyPropertyChanged
         {
             TailLines = settings.Preferences.TailLines,
             RefreshRate = TimeSpan.FromSeconds(settings.Preferences.RefreshRateSeconds),
-            FilePath = settings.Preferences.LastOpenedFile ?? string.Empty
+            FilePath = settings.Preferences.LastOpenedFile ?? string.Empty,
+            MonitoringMode = settings.Preferences.MonitoringMode
         };
 
         // Restore filter settings
@@ -157,7 +162,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (!string.IsNullOrEmpty(_options.FilePath) && File.Exists(_options.FilePath))
         {
-            _refreshTimer.Start();
+            SetupMonitoringForCurrentFile();
             Refresh(null);
         }
     }
@@ -165,6 +170,7 @@ public class MainViewModel : INotifyPropertyChanged
     public void Stop()
     {
         _refreshTimer.Stop();
+        _fileMonitorService.StopMonitoring();
     }
 
     private void RefreshTimer_Tick(object? sender, EventArgs e)
@@ -255,7 +261,7 @@ public class MainViewModel : INotifyPropertyChanged
         LogCount = LogEntries.Count;
         
         var filterInfo = GetFilterInfo();
-        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo}";
+        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo} | Mode: {GetMonitoringModeLabel()}";
     }
 
     private void PerformIncrementalUpdate(List<string> addedLines, List<string> allFiltered)
@@ -303,7 +309,7 @@ public class MainViewModel : INotifyPropertyChanged
         LogCount = LogEntries.Count;
         
         var filterInfo = GetFilterInfo();
-        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo}";
+        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo} | Mode: {GetMonitoringModeLabel()}";
     }
 
     private string GetFilterInfo()
@@ -351,6 +357,7 @@ public class MainViewModel : INotifyPropertyChanged
 
             // Refresh display
             _previousOutput = null; // Force refresh
+            SetupMonitoringForCurrentFile();
             Refresh(null);
         }
     }
@@ -381,9 +388,8 @@ public class MainViewModel : INotifyPropertyChanged
 
             // Refresh display
             _previousOutput = null; // Force refresh
+            SetupMonitoringForCurrentFile();
             Refresh(null);
-
-            _refreshTimer.Start();
         }
     }
 
@@ -435,7 +441,7 @@ public class MainViewModel : INotifyPropertyChanged
             _availableSources.Clear();
             _selectedSources.Clear();
             _previousOutput = null; // Force full reload for new file
-            _refreshTimer.Start();
+            SetupMonitoringForCurrentFile();
             Refresh(null);
 
             // Add to recent files
@@ -479,6 +485,7 @@ public class MainViewModel : INotifyPropertyChanged
         settings.Preferences.TailLines = _options.TailLines;
         settings.Preferences.RefreshRateSeconds = (int)_options.RefreshRate.TotalSeconds;
         settings.Preferences.LastOpenedFile = string.IsNullOrWhiteSpace(_options.FilePath) ? null : _options.FilePath;
+        settings.Preferences.MonitoringMode = _options.MonitoringMode;
 
         // Update filter settings
         settings.Filter.SelectedLevels = _options.Levels.ToList();
@@ -510,6 +517,50 @@ public class MainViewModel : INotifyPropertyChanged
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    private void FileMonitorService_FileChanged(object? sender, EventArgs e)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() => Refresh(null), DispatcherPriority.Background);
+    }
+
+    private void FileMonitorService_FileDeleted(object? sender, EventArgs e)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            StatusText = "File deleted or renamed. Monitoring stopped.";
+            _refreshTimer.Stop();
+            _fileMonitorService.StopMonitoring();
+        }, DispatcherPriority.Background);
+    }
+
+    private void SetupMonitoringForCurrentFile()
+    {
+        _refreshTimer.Stop();
+        _fileMonitorService.StopMonitoring();
+
+        if (string.IsNullOrEmpty(_options.FilePath) || !File.Exists(_options.FilePath))
+        {
+            return;
+        }
+
+        _fileMonitorService.StartMonitoring(_options.FilePath, _options.MonitoringMode);
+
+        if (!_fileMonitorService.IsWatcherActive)
+        {
+            _refreshTimer.Interval = _options.RefreshRate;
+            _refreshTimer.Start();
+        }
+    }
+
+    private string GetMonitoringModeLabel()
+    {
+        if (_fileMonitorService.IsWatcherActive)
+        {
+            return "Real-time";
+        }
+
+        return _options.MonitoringMode == MonitoringMode.RealTimeOnly ? "Polling (fallback)" : "Polling";
     }
 }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using LogTail.Core.Models;
 
 namespace logtail.gui.Models;
 
@@ -41,4 +42,5 @@ public class AppPreferences
     public int RefreshRateSeconds { get; set; } = 2;
     public int TailLines { get; set; } = 100;
     public string? LastOpenedFile { get; set; }
+    public MonitoringMode MonitoringMode { get; set; } = MonitoringMode.Auto;
 }
