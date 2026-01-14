@@ -8,6 +8,7 @@ public class SettingsDialogViewModel : INotifyPropertyChanged
 {
     private int _tailLines = 100;
     private int _refreshRateSeconds = 2;
+    private MonitoringMode _monitoringMode = MonitoringMode.Auto;
 
     public int TailLines
     {
@@ -29,16 +30,67 @@ public class SettingsDialogViewModel : INotifyPropertyChanged
         }
     }
 
+    public MonitoringMode MonitoringMode
+    {
+        get => _monitoringMode;
+        set
+        {
+            _monitoringMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsAutoMode));
+            OnPropertyChanged(nameof(IsRealTimeMode));
+            OnPropertyChanged(nameof(IsPollingMode));
+        }
+    }
+
+    public bool IsAutoMode
+    {
+        get => MonitoringMode == MonitoringMode.Auto;
+        set
+        {
+            if (value)
+            {
+                MonitoringMode = MonitoringMode.Auto;
+            }
+        }
+    }
+
+    public bool IsRealTimeMode
+    {
+        get => MonitoringMode == MonitoringMode.RealTimeOnly;
+        set
+        {
+            if (value)
+            {
+                MonitoringMode = MonitoringMode.RealTimeOnly;
+            }
+        }
+    }
+
+    public bool IsPollingMode
+    {
+        get => MonitoringMode == MonitoringMode.PollingOnly;
+        set
+        {
+            if (value)
+            {
+                MonitoringMode = MonitoringMode.PollingOnly;
+            }
+        }
+    }
+
     public void LoadFromOptions(LogTailOptions options)
     {
         TailLines = options.TailLines;
         RefreshRateSeconds = (int)options.RefreshRate.TotalSeconds;
+        MonitoringMode = options.MonitoringMode;
     }
 
     public void ApplyToOptions(LogTailOptions options)
     {
         options.TailLines = TailLines;
         options.RefreshRate = TimeSpan.FromSeconds(RefreshRateSeconds);
+        options.MonitoringMode = MonitoringMode;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

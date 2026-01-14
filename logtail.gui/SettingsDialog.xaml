@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:logtail.gui"
         mc:Ignorable="d"
-        Title="Settings" Height="250" Width="500"
+        Title="Settings" Height="350" Width="500"
         Background="#1E1E1E"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
@@ -40,11 +40,16 @@
             <Setter Property="BorderBrush" Value="#3E3E42"/>
             <Setter Property="Margin" Value="0,5"/>
         </Style>
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5,2"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -83,8 +88,17 @@
             </Grid>
         </GroupBox>
 
+        <!-- Monitoring Mode -->
+        <GroupBox Grid.Row="1" Header="Monitoring Mode">
+            <StackPanel Margin="5">
+                <RadioButton Content="Auto (real-time for local files, polling for network)" IsChecked="{Binding IsAutoMode}"/>
+                <RadioButton Content="Real-time only (FileSystemWatcher)" IsChecked="{Binding IsRealTimeMode}"/>
+                <RadioButton Content="Polling only (timer)" IsChecked="{Binding IsPollingMode}"/>
+            </StackPanel>
+        </GroupBox>
+
         <!-- Buttons -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Content="Apply" Click="Apply_Click" Width="80"/>
             <Button Content="Cancel" Click="Cancel_Click" Width="80"/>
         </StackPanel>

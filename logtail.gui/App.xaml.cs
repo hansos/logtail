@@ -1,14 +1,15 @@
-﻿using System;
+﻿using logtail.gui.Services;
+using Microsoft.Extensions.Configuration;
+using Serilog;
+using Serilog.Debugging;
+using Serilog.Events;
+using System;
 using System.Configuration;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
-using Serilog;
-using Serilog.Events;
-using Microsoft.Extensions.Configuration;
-using Serilog.Debugging;
 
 namespace logtail.gui
 {
@@ -17,17 +18,20 @@ namespace logtail.gui
     /// </summary>
     public partial class App : Application
     {
+
+        private static readonly ILogger _logger = Log.ForContext<App>();
+
         protected override void OnStartup(StartupEventArgs e)
         {
             ConfigureLogging();
             this.DispatcherUnhandledException += OnDispatcherUnhandledException;
             base.OnStartup(e);
-            Log.Information("Application started");
+            _logger.Information("Application started");
         }
 
         protected override void OnExit(ExitEventArgs e)
         {
-            Log.Information("Application exiting");
+            _logger.Information("Application exiting");
             Log.CloseAndFlush();
             base.OnExit(e);
         }
@@ -48,12 +52,12 @@ namespace logtail.gui
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(configuration)
                 .CreateLogger();
-            Log.Information("Logging configured");
+            _logger.Information("Logging configured");
         }
 
         private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            Log.Error(e.Exception, "Unhandled exception in UI thread");
+            _logger.Error(e.Exception, "Unhandled exception in UI thread");
             e.Handled = true; // prevent crash; consider showing a dialog if desired
         }
     }
