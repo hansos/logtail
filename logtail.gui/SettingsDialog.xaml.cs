@@ -13,6 +13,10 @@ public partial class SettingsDialog : Window
         InitializeComponent();
         ViewModel = viewModel;
         DataContext = ViewModel;
+        
+        // Set up commands for keyboard shortcuts
+        ViewModel.ApplyCommand = new RelayCommand(_ => Apply_Click(this, new RoutedEventArgs()));
+        ViewModel.CancelCommand = new RelayCommand(_ => Cancel_Click(this, new RoutedEventArgs()));
     }
 
     private void Apply_Click(object sender, RoutedEventArgs e)

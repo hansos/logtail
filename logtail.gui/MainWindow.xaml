@@ -9,6 +9,10 @@
         Background="#1E1E1E">
     <Window.InputBindings>
         <KeyBinding Key="F1" Command="{Binding AboutCommand}"/>
+        <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenFileCommand}"/>
+        <KeyBinding Key="F5" Command="{Binding RefreshCommand}"/>
+        <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FilterCommand}"/>
+        <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SettingsCommand}"/>
     </Window.InputBindings>
     <Window.Style>
         <Style TargetType="Window">
@@ -59,7 +63,7 @@
                         <Setter Property="BorderThickness" Value="1"/>
                     </Style>
                 </MenuItem.Resources>
-                <MenuItem Header="_Open Log File..." Command="{Binding OpenFileCommand}"/>
+                <MenuItem Header="_Open Log File..." Command="{Binding OpenFileCommand}" InputGestureText="Ctrl+O"/>
                 <MenuItem Header="Recent Files" ItemsSource="{Binding RecentFiles}">
                     <MenuItem.ItemContainerStyle>
                         <Style TargetType="MenuItem" BasedOn="{StaticResource {x:Type MenuItem}}">
@@ -80,10 +84,10 @@
                         <Setter Property="BorderThickness" Value="1"/>
                     </Style>
                 </MenuItem.Resources>
-                <MenuItem Header="_Filter..." Command="{Binding FilterCommand}"/>
-                <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}"/>
+                <MenuItem Header="_Filter..." Command="{Binding FilterCommand}" InputGestureText="Ctrl+F"/>
+                <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}" InputGestureText="Ctrl+S"/>
                 <Separator/>
-                <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}"/>
+                <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}" InputGestureText="F5"/>
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem.Resources>

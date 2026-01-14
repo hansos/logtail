@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using LogTail.Core.Models;
 
 namespace logtail.gui.ViewModels;
@@ -11,6 +12,9 @@ public class SettingsDialogViewModel : INotifyPropertyChanged
     private int _refreshRateSeconds = 2;
     private MonitoringMode _monitoringMode = MonitoringMode.Auto;
     private string _selectedLogFormat = "Default";
+    
+    public ICommand? ApplyCommand { get; set; }
+    public ICommand? CancelCommand { get; set; }
 
     public ObservableCollection<string> AvailableLogFormats { get; } = new();
 

@@ -29,6 +29,7 @@ namespace logtail.gui
             SizeChanged += MainWindow_SizeChanged;
             LocationChanged += MainWindow_LocationChanged;
             StateChanged += MainWindow_StateChanged;
+            PreviewKeyDown += MainWindow_PreviewKeyDown;
             
             _viewModel.LogEntries.CollectionChanged += (s, e) => 
             {
@@ -231,6 +232,82 @@ namespace logtail.gui
             
             // Set Message column to fill remaining space (minimum 200px)
             gridView.Columns[3].Width = Math.Max(200, remainingWidth);
+        }
+
+        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (LogListView == null || LogListView.Items.Count == 0)
+                return;
+
+            switch (e.Key)
+            {
+                case Key.PageUp:
+                    ScrollByPage(isUp: true);
+                    e.Handled = true;
+                    break;
+                case Key.PageDown:
+                    ScrollByPage(isUp: false);
+                    e.Handled = true;
+                    break;
+                case Key.Home:
+                    JumpToFirst();
+                    e.Handled = true;
+                    break;
+                case Key.End:
+                    JumpToLast();
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void ScrollByPage(bool isUp)
+        {
+            var scrollViewer = FindScrollViewer(LogListView);
+            if (scrollViewer == null)
+                return;
+
+            if (isUp)
+            {
+                scrollViewer.PageUp();
+            }
+            else
+            {
+                scrollViewer.PageDown();
+            }
+        }
+
+        private void JumpToFirst()
+        {
+            if (LogListView.Items.Count > 0)
+            {
+                LogListView.ScrollIntoView(LogListView.Items[0]);
+                LogListView.SelectedIndex = 0;
+            }
+        }
+
+        private void JumpToLast()
+        {
+            if (LogListView.Items.Count > 0)
+            {
+                var lastIndex = LogListView.Items.Count - 1;
+                LogListView.ScrollIntoView(LogListView.Items[lastIndex]);
+                LogListView.SelectedIndex = lastIndex;
+            }
+        }
+
+        private ScrollViewer? FindScrollViewer(DependencyObject parent)
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is ScrollViewer scrollViewer)
+                    return scrollViewer;
+
+                var result = FindScrollViewer(child);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
     }
 }

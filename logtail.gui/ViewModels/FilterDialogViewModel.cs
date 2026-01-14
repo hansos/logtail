@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows.Input;
 using LogTail.Core.Models;
 
 namespace logtail.gui.ViewModels;
@@ -8,6 +9,9 @@ namespace logtail.gui.ViewModels;
 public class FilterDialogViewModel : INotifyPropertyChanged
 {
     private string _messageFilter = string.Empty;
+    
+    public ICommand? ApplyCommand { get; set; }
+    public ICommand? CancelCommand { get; set; }
 
     public ObservableCollection<LogLevelFilterItem> LogLevels { get; } = new()
     {

@@ -14,12 +14,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Visual Studio Integration.md",
+                "file": "Keyboard Shortcuts.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Visual Studio Integration"
+              "title": "Keyboard Shortcuts"
             }
           }
         ]
@@ -203,14 +203,14 @@
   },
   "active": "fbbb4df681432dbe",
   "lastOpenFiles": [
-    "Welcome.md",
+    "Opening and Monitoring Log Files.md",
+    "Keyboard Shortcuts.md",
     "Visual Studio Integration.md",
+    "Welcome.md",
     "cmnfqaws.2gf~",
     "Settings and Preferences.md",
     "lmtutty2.31y~",
     "vlslm2ve.c31~",
-    "Opening and Monitoring Log Files.md",
-    "Filtering Logs.md",
-    "Keyboard Shortcuts.md"
+    "Filtering Logs.md"
   ]
 }
