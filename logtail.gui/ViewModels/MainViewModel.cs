@@ -10,6 +10,7 @@ using LogTail.Core;
 using LogTail.Core.Models;
 using logtail.gui.Services;
 using logtail.gui.Models;
+using logtail.gui.Collections;
 
 namespace logtail.gui.ViewModels;
 
@@ -28,7 +29,7 @@ public class MainViewModel : INotifyPropertyChanged
     private HashSet<string> _selectedSources = new();
     private bool _isBusy;
 
-    public ObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
+    public BulkObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
     public ObservableCollection<string> RecentFiles { get; } = new();
 
     public string StatusText
@@ -187,33 +188,30 @@ public class MainViewModel : INotifyPropertyChanged
 
             if (_previousOutput == null || !filtered.SequenceEqual(_previousOutput))
             {
-                LogEntries.Clear();
-                var newSources = new HashSet<string>();
+                // Determine what changed
+                var oldLines = _previousOutput ?? new List<string>();
+                var newLines = filtered;
 
-                foreach (var line in filtered)
+                // Find new lines that were added
+                var addedLines = newLines.Skip(oldLines.Count).ToList();
+
+                // Check if we need to do a full reload (filters changed, file shrunk, etc)
+                bool needsFullReload = _previousOutput == null || 
+                                      newLines.Count < oldLines.Count ||
+                                      !oldLines.SequenceEqual(newLines.Take(oldLines.Count));
+
+                if (needsFullReload)
                 {
-                    var entry = LogEntryViewModel.FromText(line);
-                    
-                    if (!string.IsNullOrWhiteSpace(entry.Source))
-                    {
-                        newSources.Add(entry.Source);
-                    }
-
-                    // Apply source filter
-                    if (_selectedSources.Count == 0 || _selectedSources.Contains(entry.Source))
-                    {
-                        LogEntries.Add(entry);
-                    }
+                    // Full reload - file changed significantly or filters changed
+                    PerformFullReload(filtered);
+                }
+                else if (addedLines.Count > 0)
+                {
+                    // Incremental update - only new lines added
+                    PerformIncrementalUpdate(addedLines, filtered);
                 }
 
-                // Update available sources
-                _availableSources = newSources;
-
                 _previousOutput = filtered;
-                LogCount = LogEntries.Count;
-                
-                var filterInfo = GetFilterInfo();
-                StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo}";
             }
         }
         catch (Exception ex)
@@ -224,6 +222,88 @@ public class MainViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+    }
+
+    private void PerformFullReload(List<string> filtered)
+    {
+        var newSources = new HashSet<string>();
+        var entriesToAdd = new List<LogEntryViewModel>();
+
+        foreach (var line in filtered)
+        {
+            var entry = LogEntryViewModel.FromText(line);
+            
+            if (!string.IsNullOrWhiteSpace(entry.Source))
+            {
+                newSources.Add(entry.Source);
+            }
+
+            // Apply source filter
+            if (_selectedSources.Count == 0 || _selectedSources.Contains(entry.Source))
+            {
+                entriesToAdd.Add(entry);
+            }
+        }
+
+        // Update UI in one batch operation
+        LogEntries.Clear();
+        LogEntries.AddRange(entriesToAdd);
+
+        // Update available sources
+        _availableSources = newSources;
+
+        LogCount = LogEntries.Count;
+        
+        var filterInfo = GetFilterInfo();
+        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo}";
+    }
+
+    private void PerformIncrementalUpdate(List<string> addedLines, List<string> allFiltered)
+    {
+        var newEntries = new List<LogEntryViewModel>();
+        var newSources = new HashSet<string>(_availableSources);
+
+        // Parse only the new lines
+        foreach (var line in addedLines)
+        {
+            var entry = LogEntryViewModel.FromText(line);
+            
+            if (!string.IsNullOrWhiteSpace(entry.Source))
+            {
+                newSources.Add(entry.Source);
+            }
+
+            // Apply source filter
+            if (_selectedSources.Count == 0 || _selectedSources.Contains(entry.Source))
+            {
+                newEntries.Add(entry);
+            }
+        }
+
+        // Calculate how many items to remove from the start to maintain tail limit
+        int maxDisplayCount = _options.TailLines * 5; // Same multiplier as LogReader
+        int totalAfterAdd = LogEntries.Count + newEntries.Count;
+        int toRemove = Math.Max(0, totalAfterAdd - maxDisplayCount);
+
+        // Remove old entries from the beginning if needed (single batch operation)
+        if (toRemove > 0)
+        {
+            LogEntries.RemoveRange(toRemove);
+        }
+
+        // Add new entries to the end (single batch operation)
+        if (newEntries.Count > 0)
+        {
+            LogEntries.AddRange(newEntries);
+        }
+
+        // Update available sources
+        _availableSources = newSources;
+
+        LogCount = LogEntries.Count;
+        
+        var filterInfo = GetFilterInfo();
+        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo}";
     }
 
     private string GetFilterInfo()
@@ -354,6 +434,7 @@ public class MainViewModel : INotifyPropertyChanged
             FilePath = filePath;
             _availableSources.Clear();
             _selectedSources.Clear();
+            _previousOutput = null; // Force full reload for new file
             _refreshTimer.Start();
             Refresh(null);
 
