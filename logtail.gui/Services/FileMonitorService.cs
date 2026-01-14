@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Windows.Threading;
 using LogTail.Core.Models;
+using Serilog;
+using ILogger = Serilog.ILogger;
 
 namespace logtail.gui.Services;
 
@@ -10,6 +12,7 @@ public class FileMonitorService : IDisposable
     private readonly DispatcherTimer _debounceTimer;
     private FileSystemWatcher? _watcher;
     private string? _filePath;
+    private readonly ILogger _logger = Log.ForContext<FileMonitorService>();
 
     public event EventHandler? FileChanged;
     public event EventHandler? FileDeleted;
@@ -36,6 +39,7 @@ public class FileMonitorService : IDisposable
         if (usePolling)
         {
             IsWatcherActive = false;
+            _logger.Information("Using polling mode for file {FilePath}", filePath);
             return;
         }
 
@@ -46,6 +50,7 @@ public class FileMonitorService : IDisposable
             if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(fileName))
             {
                 IsWatcherActive = false;
+                _logger.Warning("Invalid file path provided to StartMonitoring: {FilePath}", filePath);
                 return;
             }
 
@@ -61,10 +66,12 @@ public class FileMonitorService : IDisposable
 
             _watcher.EnableRaisingEvents = true;
             IsWatcherActive = true;
+            _logger.Information("Started FileSystemWatcher for {FilePath}", filePath);
         }
-        catch
+        catch (Exception ex)
         {
             IsWatcherActive = false;
+            _logger.Error(ex, "Failed to start FileSystemWatcher for {FilePath}", filePath);
         }
     }
 
@@ -81,6 +88,7 @@ public class FileMonitorService : IDisposable
             _watcher.Deleted -= OnWatcherDeleted;
             _watcher.Dispose();
             _watcher = null;
+            _logger.Information("Stopped FileSystemWatcher for {FilePath}", _filePath);
         }
 
         IsWatcherActive = false;
@@ -91,6 +99,7 @@ public class FileMonitorService : IDisposable
         if (!IsSameFile(e.FullPath))
             return;
 
+        _logger.Debug("File change event received for {FilePath}", e.FullPath);
         _debounceTimer.Stop();
         _debounceTimer.Start();
     }
@@ -100,6 +109,7 @@ public class FileMonitorService : IDisposable
         if (!IsSameFile(e.FullPath))
             return;
 
+        _logger.Information("File deleted: {FilePath}", e.FullPath);
         FileDeleted?.Invoke(this, EventArgs.Empty);
     }
 
@@ -108,12 +118,14 @@ public class FileMonitorService : IDisposable
         if (!IsSameFile(e.OldFullPath))
             return;
 
+        _logger.Information("File renamed from {OldPath} to {NewPath}", e.OldFullPath, e.FullPath);
         FileDeleted?.Invoke(this, EventArgs.Empty);
     }
 
     private void DebounceTimer_Tick(object? sender, EventArgs e)
     {
         _debounceTimer.Stop();
+        _logger.Debug("Debounce tick fired for {FilePath}", _filePath);
         FileChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -146,8 +158,9 @@ public class FileMonitorService : IDisposable
                 return drive.DriveType == DriveType.Network;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            Log.ForContext<FileMonitorService>().Warning(ex, "Failed to determine if path is network: {Path}", path);
             // Ignore errors and treat as local path
         }
 
