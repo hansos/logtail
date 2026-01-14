@@ -10,6 +10,7 @@ using LogTail.Core;
 using LogTail.Core.Models;
 using logtail.gui.Services;
 using logtail.gui.Models;
+using logtail.gui.Collections;
 
 namespace logtail.gui.ViewModels;
 
@@ -28,7 +29,7 @@ public class MainViewModel : INotifyPropertyChanged
     private HashSet<string> _selectedSources = new();
     private bool _isBusy;
 
-    public ObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
+    public RangeObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
     public ObservableCollection<string> RecentFiles { get; } = new();
 
     public string StatusText
@@ -185,9 +186,10 @@ public class MainViewModel : INotifyPropertyChanged
 
             if (_previousOutput == null || !filtered.SequenceEqual(_previousOutput))
             {
-                LogEntries.Clear();
                 var newSources = new HashSet<string>();
+                var newEntries = new List<LogEntryViewModel>();
 
+                // Build the list in memory first
                 foreach (var line in filtered)
                 {
                     var entry = LogEntryViewModel.FromText(line);
@@ -200,12 +202,15 @@ public class MainViewModel : INotifyPropertyChanged
                     // Apply source filter
                     if (_selectedSources.Count == 0 || _selectedSources.Contains(entry.Source))
                     {
-                        LogEntries.Add(entry);
+                        newEntries.Add(entry);
                     }
                 }
 
                 // Update available sources
                 _availableSources = newSources;
+
+                // Bulk update the collection (Clear + AddRange = 2 notifications instead of N)
+                LogEntries.ReplaceRange(newEntries);
 
                 _previousOutput = filtered;
                 LogCount = LogEntries.Count;
