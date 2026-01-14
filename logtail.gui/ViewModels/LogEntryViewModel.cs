@@ -34,9 +34,9 @@ public class LogEntryViewModel
         _ => Brushes.White
     };
 
-    public static LogEntryViewModel FromText(string line)
+    public static LogEntryViewModel FromText(string line, LogParser? parser = null)
     {
-        var parser = new LogParser();
+        parser ??= new LogParser();
         var parsed = parser.ParseLogLine(line);
         
         var viewModel = new LogEntryViewModel
@@ -46,7 +46,7 @@ public class LogEntryViewModel
             LevelText = parsed.Level,
             Source = parsed.Source,
             Message = parsed.Message,
-            Level = ExtractLevel(parsed.Level)
+            Level = parser.ExtractLogLevel(line)
         };
 
         // Extract file path and line number if present
@@ -61,22 +61,5 @@ public class LogEntryViewModel
         }
 
         return viewModel;
-    }
-
-    private static LogLevel? ExtractLevel(string levelText)
-    {
-        if (string.IsNullOrEmpty(levelText))
-            return null;
-
-        return levelText.ToUpperInvariant() switch
-        {
-            "VERBOSE" => LogLevel.Verbose,
-            "DBUG" => LogLevel.Debug,
-            "INFO" => LogLevel.Info,
-            "WARNING" or "WARN" => LogLevel.Warning,
-            "ERROR" or "EROR" => LogLevel.Error,
-            "FATAL" => LogLevel.Fatal,
-            _ => null
-        };
     }
 }

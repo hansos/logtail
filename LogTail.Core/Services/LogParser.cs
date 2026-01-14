@@ -5,13 +5,29 @@ namespace LogTail.Core.Services;
 
 public sealed class LogParser
 {
-    private static readonly Regex LevelRegex =
-        new(@"\[(?<level>VERBOSE|DBUG|INFO|WARNING|ERROR|EROR|FATAL)\]",
-            RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private Regex _levelRegex;
+    private Regex _fullLogRegex;
+    private LogFormat _currentFormat;
 
-    private static readonly Regex FullLogRegex =
-        new(@"^(?<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?)\s+\[(?<level>[^\]]+)\]\s+(?<source>[^\s]+)\s+(?<message>.*)$",
-            RegexOptions.Compiled);
+    public LogParser(LogFormat? format = null)
+    {
+        _currentFormat = format ?? LogFormat.CreateDefault();
+        UpdateRegexPatterns();
+    }
+
+    public LogFormat CurrentFormat => _currentFormat;
+
+    public void SetFormat(LogFormat format)
+    {
+        _currentFormat = format;
+        UpdateRegexPatterns();
+    }
+
+    private void UpdateRegexPatterns()
+    {
+        _levelRegex = new Regex(_currentFormat.LevelPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        _fullLogRegex = new Regex(_currentFormat.FullLogPattern, RegexOptions.Compiled);
+    }
 
     public bool IsLogHeader(string line)
     {
@@ -19,49 +35,62 @@ public sealed class LogParser
         return line.Length > 19 &&
                char.IsDigit(line[0]) &&
                char.IsDigit(line[3]) &&
-               LevelRegex.IsMatch(line);
+               _levelRegex.IsMatch(line);
     }
 
     public LogLevel? ExtractLogLevel(string line)
     {
-        var match = LevelRegex.Match(line);
+        var match = _levelRegex.Match(line);
         if (!match.Success) return null;
 
-        return match.Groups["level"].Value.ToUpperInvariant() switch
+        var levelText = match.Groups["level"].Value.ToUpperInvariant();
+        
+        // Check if there's a mapping for this level
+        if (_currentFormat.LevelMappings.TryGetValue(levelText, out var mappedLevel))
         {
-            "VERBOSE" => LogLevel.Verbose,
-            "DBUG" => LogLevel.Debug,
-            "INFO" => LogLevel.Info,
-            "WARNING" => LogLevel.Warning,
-            "ERROR" or "EROR" => LogLevel.Error,
-            "FATAL" => LogLevel.Fatal,
-            _ => null
-        };
+            return mappedLevel switch
+            {
+                "Verbose" => LogLevel.Verbose,
+                "Debug" => LogLevel.Debug,
+                "Info" => LogLevel.Info,
+                "Warning" => LogLevel.Warning,
+                "Error" => LogLevel.Error,
+                "Fatal" => LogLevel.Fatal,
+                _ => null
+            };
+        }
+
+        return null;
     }
 
     public string GetLevelText(string line)
     {
-        var match = LevelRegex.Match(line);
+        var match = _levelRegex.Match(line);
         return match.Success ? match.Groups["level"].Value.ToUpperInvariant() : string.Empty;
     }
 
     public ParsedLogLine ParseLogLine(string line)
     {
-        var match = FullLogRegex.Match(line);
+        var match = _fullLogRegex.Match(line);
         
         if (match.Success)
         {
+            var timestamp = match.Groups["timestamp"].Success ? match.Groups["timestamp"].Value : string.Empty;
+            var level = match.Groups["level"].Success ? match.Groups["level"].Value : string.Empty;
+            var source = match.Groups["source"].Success ? match.Groups["source"].Value : string.Empty;
+            var message = match.Groups["message"].Success ? match.Groups["message"].Value : string.Empty;
+
             return new ParsedLogLine
             {
-                Timestamp = match.Groups["timestamp"].Value,
-                Level = match.Groups["level"].Value,
-                Source = match.Groups["source"].Value,
-                Message = match.Groups["message"].Value
+                Timestamp = timestamp,
+                Level = level,
+                Source = source,
+                Message = message
             };
         }
 
         // Fallback parsing for non-standard format
-        var levelMatch = LevelRegex.Match(line);
+        var levelMatch = _levelRegex.Match(line);
         if (levelMatch.Success)
         {
             var levelIndex = levelMatch.Index;

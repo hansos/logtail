@@ -8,6 +8,7 @@ public sealed class LogTailOptions
     public string? Filter { get; set; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromSeconds(5);
     public MonitoringMode MonitoringMode { get; set; } = MonitoringMode.Auto;
+    public string LogFormatName { get; set; } = "Default";
 }
 
 public enum MonitoringMode
