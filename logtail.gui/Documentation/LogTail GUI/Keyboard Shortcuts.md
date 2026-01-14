@@ -1,6 +1,7 @@
 
 **File Operations:**
 - **Ctrl+O** - Open log file dialog
+- **Ctrl+W** - Close current file
 - **F5** - Reload current file
 
 **Navigation:**

@@ -86,6 +86,7 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public ICommand OpenFileCommand { get; }
+    public ICommand CloseFileCommand { get; }
     public ICommand RefreshCommand { get; }
     public ICommand FilterCommand { get; }
     public ICommand SettingsCommand { get; }
@@ -145,6 +146,7 @@ public class MainViewModel : INotifyPropertyChanged
         _refreshTimer.Tick += RefreshTimer_Tick;
 
         OpenFileCommand = new RelayCommand(OpenFile);
+        CloseFileCommand = new RelayCommand(CloseFile, CanCloseFile);
         RefreshCommand = new RelayCommand(Refresh);
         FilterCommand = new RelayCommand(ShowFilterDialog);
         SettingsCommand = new RelayCommand(ShowSettingsDialog);
@@ -484,6 +486,42 @@ public class MainViewModel : INotifyPropertyChanged
         {
             IsBusy = false;
         }
+    }
+
+    private bool CanCloseFile(object? parameter)
+    {
+        return !string.IsNullOrEmpty(_options.FilePath) && LogEntries.Count > 0;
+    }
+
+    private void CloseFile(object? parameter)
+    {
+        // Stop monitoring and timer
+        _refreshTimer.Stop();
+        _fileMonitorService.StopMonitoring();
+
+        // Clear data
+        LogEntries.Clear();
+        _previousOutput = null;
+        _availableSources.Clear();
+        _selectedSources.Clear();
+
+        // Reset filters
+        _options.Levels.Clear();
+        _options.Filter = string.Empty;
+
+        // Clear file path
+        FilePath = string.Empty;
+
+        // Update status
+        LogCount = 0;
+        StatusText = "No file open";
+
+        // Save settings
+        SaveAppPreferences();
+
+        // Force UI update for command states
+        OnPropertyChanged(nameof(FilePath));
+        CommandManager.InvalidateRequerySuggested();
     }
 
     private void LoadRecentFiles()
