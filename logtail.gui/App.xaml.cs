@@ -38,13 +38,21 @@ namespace logtail.gui
 
         private static void ConfigureLogging()
         {
+            // Create logs directory in user's local app data (writable from Program Files)
+            var defaultLogDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "LogTail",
+                "logs"
+            );
+            Directory.CreateDirectory(defaultLogDir);
+
             var configuration = new ConfigurationBuilder()
                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    { "Serilog:WriteTo:0:Args:path", Path.Combine(defaultLogDir, "LogTail-.log") }
+                })
                 .Build();
-
-            // Create default logs directory used by appsettings.json (relative to app base)
-            var defaultLogDir = Path.Combine(AppContext.BaseDirectory, "logs");
-            Directory.CreateDirectory(defaultLogDir);
 
             // Enable Serilog self-log to Debug output for troubleshooting sink issues
             SelfLog.Enable(msg => Debug.WriteLine($"[Serilog] {msg}"));
