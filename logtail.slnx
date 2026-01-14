@@ -1,6 +1,10 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="LOGFORMATS.md" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/screenshots/">
+    <File Path="screenshots/main-screen.png" />
   </Folder>
   <Project Path="LogTail.Core/LogTail.Core.csproj" />
   <Project Path="logtail.gui/logtail.gui.csproj" Id="ad4ec1d5-7974-4300-aa16-a735c1cb7d58" />
