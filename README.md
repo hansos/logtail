@@ -22,7 +22,7 @@ A modern, feature-rich log file viewer for Windows with Visual Studio integratio
 ![LogTail Main Screen](screenshots/main-screen.png)
 
 ### Settings Dialog
-![LogTail Settings](screenshots/settings.png)
+![LogTail Settings](screenshots/setting.png)
 
 ### Main Window
 The application displays logs in a clean, Visual Studio-inspired dark theme with automatic column sizing.
