@@ -115,6 +115,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Discussions**: [GitHub Discussions](https://github.com/hansos/logtail/discussions)
 - **Releases**: [GitHub Releases](https://github.com/hansos/logtail/releases)
 
+
+## Screenshots
+
+### Main Screen
+![LogTail Main Screen](screenshots/main-screen.png)
+
+### Settings Dialog
+![LogTail Settings](screenshots/settings.png)
+
 ---
 
 Made with ❤️ for developers who read logs
