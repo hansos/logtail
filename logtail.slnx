@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="LogTail.Core/LogTail.Core.csproj" />
   <Project Path="logtail.gui/logtail.gui.csproj" Id="ad4ec1d5-7974-4300-aa16-a735c1cb7d58" />
   <Project Path="logtail/logtail.csproj" />

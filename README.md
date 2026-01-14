@@ -18,6 +18,12 @@ A modern, feature-rich log file viewer for Windows with Visual Studio integratio
 
 ## Screenshots
 
+### Main Screen
+![LogTail Main Screen](screenshots/main-screen.png)
+
+### Settings Dialog
+![LogTail Settings](screenshots/settings.png)
+
 ### Main Window
 The application displays logs in a clean, Visual Studio-inspired dark theme with automatic column sizing.
 
@@ -115,14 +121,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Discussions**: [GitHub Discussions](https://github.com/hansos/logtail/discussions)
 - **Releases**: [GitHub Releases](https://github.com/hansos/logtail/releases)
 
-
-## Screenshots
-
-### Main Screen
-![LogTail Main Screen](screenshots/main-screen.png)
-
-### Settings Dialog
-![LogTail Settings](screenshots/settings.png)
 
 ---
 
