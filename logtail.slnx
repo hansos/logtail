@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path="CREDITS.md" />
     <File Path="LOGFORMATS.md" />
     <File Path="README.md" />
   </Folder>
