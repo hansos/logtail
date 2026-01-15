@@ -24,6 +24,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly SettingsManager _settingsManager;
     private readonly FileMonitorService _fileMonitorService;
     private readonly ILogFileValidator _fileValidator;
+    private readonly Serilog.ILogger _logger = Serilog.Log.ForContext<MainViewModel>();
     private LogTailOptions _options;
     private string _statusText = "Ready";
     private Brush _statusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC"));
@@ -127,6 +128,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand RefreshCommand { get; }
     public ICommand FilterCommand { get; }
     public ICommand SettingsCommand { get; }
+    public ICommand FileRotationSettingsCommand { get; }
     public ICommand ExitCommand { get; }
     public ICommand OpenRecentFileCommand { get; }
     public ICommand AboutCommand { get; }
@@ -143,6 +145,9 @@ public class MainViewModel : INotifyPropertyChanged
         _fileMonitorService.FileChanged += FileMonitorService_FileChanged;
         _fileMonitorService.FileDeleted += FileMonitorService_FileDeleted;
         _fileMonitorService.BufferedCountChanged += FileMonitorService_BufferedCountChanged;
+        _fileMonitorService.FileRotationDetected += FileMonitorService_FileRotationDetected;
+        _fileMonitorService.FileRecreated += FileMonitorService_FileRecreated;
+        _fileMonitorService.DeletionStatusChanged += FileMonitorService_DeletionStatusChanged;
         
         // Load settings from disk
         var settings = _settingsManager.LoadSettings();
@@ -181,6 +186,9 @@ public class MainViewModel : INotifyPropertyChanged
         
         // Load pause settings
         _pausedStatusBarColor = settings.Preferences.PauseStatusBarColor;
+        
+        // Apply rotation settings to file monitor
+        _fileMonitorService.SetRotationSettings(settings.Preferences.FileRotation);
 
         _refreshTimer = new DispatcherTimer
         {
@@ -193,6 +201,7 @@ public class MainViewModel : INotifyPropertyChanged
         RefreshCommand = new RelayCommand(Refresh);
         FilterCommand = new RelayCommand(ShowFilterDialog);
         SettingsCommand = new RelayCommand(ShowSettingsDialog);
+        FileRotationSettingsCommand = new RelayCommand(ShowFileRotationDialog);
         ExitCommand = new RelayCommand(_ => Application.Current.Shutdown());
         OpenRecentFileCommand = new RelayCommand(OpenRecentFile);
         AboutCommand = new RelayCommand(ShowAboutDialog);
@@ -492,6 +501,38 @@ public class MainViewModel : INotifyPropertyChanged
         };
         dialog.ShowDialog();
     }
+    
+    private void ShowFileRotationDialog(object? parameter)
+    {
+        var settings = _settingsManager.LoadSettings();
+        var viewModel = new FileRotationDialogViewModel();
+        
+        // Load current rotation settings
+        viewModel.LoadFromSettings(settings.Preferences.FileRotation);
+        
+        var dialog = new FileRotationDialog(viewModel)
+        {
+            Owner = Application.Current.MainWindow
+        };
+        
+        if (dialog.ShowDialog() == true || dialog.WasApplied)
+        {
+            // Apply settings
+            viewModel.ApplyToSettings(settings.Preferences.FileRotation);
+            
+            // Update file monitor service with new settings
+            _fileMonitorService.SetRotationSettings(settings.Preferences.FileRotation);
+            
+            // Save settings
+            _settingsManager.SaveSettings(settings);
+            
+            // Optionally restart monitoring to apply changes
+            if (!string.IsNullOrEmpty(_options.FilePath) && File.Exists(_options.FilePath))
+            {
+                SetupMonitoringForCurrentFile();
+            }
+        }
+    }
 
     private void ApplySourceFilter()
     {
@@ -698,6 +739,71 @@ public class MainViewModel : INotifyPropertyChanged
         Application.Current.Dispatcher.InvokeAsync(() =>
         {
             BufferedEntryCount = _fileMonitorService.BufferedCount;
+        }, DispatcherPriority.Background);
+    }
+    
+    private void FileMonitorService_FileRotationDetected(object? sender, FileRotationEventArgs e)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            _logger.Information("File rotation detected: {Type} - {Method}", e.RotationType, e.DetectionMethod);
+            
+            var settings = _settingsManager.LoadSettings();
+            if (settings.Preferences.FileRotation.ShowNotification && settings.Preferences.FileRotation.LogRotationEvents)
+            {
+                var rotationType = e.RotationType.ToString();
+                var oldFile = e.OldFile != null ? Path.GetFileName(e.OldFile) : "N/A";
+                var newFile = e.NewFile != null ? Path.GetFileName(e.NewFile) : "N/A";
+                
+                _logger.Information("File rotation: {Type}, Old: {OldFile}, New: {NewFile}", 
+                    rotationType, oldFile, newFile);
+            }
+        }, DispatcherPriority.Background);
+    }
+    
+    private void FileMonitorService_FileRecreated(object? sender, FileRecreatedEventArgs e)
+    {
+        Application.Current.Dispatcher.InvokeAsync(async () =>
+        {
+            _logger.Information("File recreated: {FilePath}", e.FilePath);
+            
+            // Reopen the file and resume monitoring
+            await OpenLogFileAsync(e.FilePath, validateFile: false);
+            
+            var settings = _settingsManager.LoadSettings();
+            if (settings.Preferences.FileRotation.ShowNotification)
+            {
+                var tempStatus = StatusText;
+                StatusText = $"File recreated - monitoring resumed ({e.ElapsedSeconds}s elapsed)";
+                
+                await System.Threading.Tasks.Task.Delay(3000);
+                
+                if (StatusText.StartsWith("File recreated"))
+                {
+                    UpdateStatusText();
+                }
+            }
+        }, DispatcherPriority.Background);
+    }
+    
+    private void FileMonitorService_DeletionStatusChanged(object? sender, DeletionStatusEventArgs e)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            StatusText = e.Status;
+            
+            if (e.IsWarning)
+            {
+                StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFA500")); // Orange
+            }
+            else if (e.IsError)
+            {
+                StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#DC3545")); // Red
+            }
+            else if (e.IsNormal)
+            {
+                UpdateStatusBarColor();
+            }
         }, DispatcherPriority.Background);
     }
     

@@ -48,4 +48,5 @@ public class AppPreferences
     public bool ShowPauseNotification { get; set; } = true;
     public string PauseStatusBarColor { get; set; } = "#FFA500";
     public bool ScrollToBottomOnResume { get; set; } = true;
+    public FileRotationSettings FileRotation { get; set; } = new();
 }

@@ -19,6 +19,7 @@ Drop="Window_Drop">
         <KeyBinding Key="F5" Command="{Binding RefreshCommand}"/>
         <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FilterCommand}"/>
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SettingsCommand}"/>
+        <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding FileRotationSettingsCommand}"/>
         <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding PauseResumeCommand}"/>
     </Window.InputBindings>
     <Window.Style>
@@ -94,6 +95,7 @@ Drop="Window_Drop">
                 </MenuItem.Resources>
                 <MenuItem Header="_Filter..." Command="{Binding FilterCommand}" InputGestureText="Ctrl+F"/>
                 <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}" InputGestureText="Ctrl+S"/>
+                <MenuItem Header="File _Rotation..." Command="{Binding FileRotationSettingsCommand}" InputGestureText="Ctrl+R"/>
                 <Separator/>
                 <MenuItem Header="{Binding PauseResumeButtonText}" Command="{Binding PauseResumeCommand}" InputGestureText="Ctrl+Space">
                 </MenuItem>

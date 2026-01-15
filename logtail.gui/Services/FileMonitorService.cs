@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows.Threading;
 using LogTail.Core.Models;
+using logtail.gui.Models;
 using Serilog;
 using ILogger = Serilog.ILogger;
 
@@ -15,10 +16,15 @@ public class FileMonitorService : IDisposable
     private readonly ILogger _logger = Log.ForContext<FileMonitorService>();
     private bool _isPaused;
     private int _bufferedChangeCount;
+    private FileDeletionHandler? _deletionHandler;
+    private FileRotationSettings _rotationSettings = new();
 
     public event EventHandler? FileChanged;
     public event EventHandler? FileDeleted;
     public event EventHandler? BufferedCountChanged;
+    public event EventHandler<FileRotationEventArgs>? FileRotationDetected;
+    public event EventHandler<FileRecreatedEventArgs>? FileRecreated;
+    public event EventHandler<DeletionStatusEventArgs>? DeletionStatusChanged;
 
     public bool IsWatcherActive { get; private set; }
     public MonitoringMode ActiveMode { get; private set; } = MonitoringMode.Auto;
@@ -49,6 +55,25 @@ public class FileMonitorService : IDisposable
             Interval = TimeSpan.FromMilliseconds(500)
         };
         _debounceTimer.Tick += DebounceTimer_Tick;
+        InitializeDeletionHandler();
+    }
+    
+    /// <summary>
+    /// Sets the file rotation settings
+    /// </summary>
+    public void SetRotationSettings(FileRotationSettings settings)
+    {
+        _rotationSettings = settings ?? new FileRotationSettings();
+        InitializeDeletionHandler();
+    }
+    
+    private void InitializeDeletionHandler()
+    {
+        _deletionHandler?.Dispose();
+        _deletionHandler = new FileDeletionHandler(_rotationSettings.Deletion);
+        _deletionHandler.FileRecreated += OnFileRecreated;
+        _deletionHandler.StatusChanged += OnDeletionStatusChanged;
+        _deletionHandler.TimeoutExceeded += OnDeletionTimeout;
     }
 
     public void StartMonitoring(string filePath, MonitoringMode mode)
@@ -145,7 +170,32 @@ public class FileMonitorService : IDisposable
             return;
 
         _logger.Information("File deleted: {FilePath}", e.FullPath);
-        FileDeleted?.Invoke(this, EventArgs.Empty);
+        
+        // Create rotation event for deletion
+        var rotationEvent = new FileRotationEventArgs
+        {
+            RotationType = RotationType.Deleted,
+            OldFile = e.FullPath,
+            DetectionMethod = "FileSystemWatcher.Deleted",
+            RequiresUserAction = true
+        };
+        
+        // Raise rotation detected event
+        FileRotationDetected?.Invoke(this, rotationEvent);
+        
+        // Handle deletion if auto-wait is enabled
+        if (_rotationSettings.Deletion.AutoWaitForRecreation && _deletionHandler != null)
+        {
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                await _deletionHandler.HandleFileDeletionAsync(rotationEvent);
+            });
+        }
+        else
+        {
+            // Traditional behavior - just notify deletion
+            FileDeleted?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void OnWatcherRenamed(object sender, RenamedEventArgs e)
@@ -154,6 +204,17 @@ public class FileMonitorService : IDisposable
             return;
 
         _logger.Information("File renamed from {OldPath} to {NewPath}", e.OldFullPath, e.FullPath);
+        
+        // Create rotation event for rename
+        var rotationEvent = new FileRotationEventArgs
+        {
+            RotationType = RotationType.Renamed,
+            OldFile = e.OldFullPath,
+            NewFile = e.FullPath,
+            DetectionMethod = "FileSystemWatcher.Renamed"
+        };
+        
+        FileRotationDetected?.Invoke(this, rotationEvent);
         FileDeleted?.Invoke(this, EventArgs.Empty);
     }
 
@@ -206,6 +267,25 @@ public class FileMonitorService : IDisposable
     {
         StopMonitoring();
         _debounceTimer.Tick -= DebounceTimer_Tick;
+        _deletionHandler?.Dispose();
+    }
+    
+    private void OnFileRecreated(object? sender, FileRecreatedEventArgs e)
+    {
+        _logger.Information("File recreated event received for {FilePath}", e.FilePath);
+        FileRecreated?.Invoke(this, e);
+    }
+    
+    private void OnDeletionStatusChanged(object? sender, DeletionStatusEventArgs e)
+    {
+        DeletionStatusChanged?.Invoke(this, e);
+    }
+    
+    private void OnDeletionTimeout(object? sender, DeletionTimeoutEventArgs e)
+    {
+        _logger.Warning("Deletion timeout event for {FilePath}", e.FilePath);
+        // Stop monitoring after timeout
+        StopMonitoring();
     }
     
     public void Pause()

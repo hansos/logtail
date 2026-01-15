@@ -1,0 +1,206 @@
+<Window x:Class="logtail.gui.FileRotationDialog"
+xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:local="clr-namespace:logtail.gui"
+mc:Ignorable="d"
+Title="File Rotation Settings" Height="600" Width="700"
+Background="#1E1E1E"
+WindowStartupLocation="CenterOwner"
+ResizeMode="NoResize">
+<Window.InputBindings>
+    <KeyBinding Key="Enter" Command="{Binding ApplyCommand}"/>
+    <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+</Window.InputBindings>
+<Window.Resources>
+        
+    <Style TargetType="Label">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Margin" Value="0,10,0,5"/>
+    </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Height" Value="25"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5,5,5,5"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#0E639C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,5"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1177BB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Margin" Value="0,5"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#B0B0B0"/>
+            <Setter Property="Margin" Value="5,2"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Rotation Detection -->
+                <GroupBox Header="Rotation Detection">
+                    <StackPanel Margin="10">
+                        <CheckBox Content="Automatically detect file rotation"
+                                 IsChecked="{Binding AutoDetect}"/>
+                        
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Row="0" Grid.Column="0" Content="Check interval:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" 
+                                    Text="{Binding CheckIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="5,0"
+                                    IsEnabled="{Binding AutoDetect}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                      Text="seconds" 
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+
+                            <Label Grid.Row="1" Grid.Column="0" Content="Retry interval:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" 
+                                    Text="{Binding RetryIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="5,0"
+                                    IsEnabled="{Binding AutoDetect}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" 
+                                      Text="seconds" 
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+
+                            <Label Grid.Row="2" Grid.Column="0" Content="Max retries:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" 
+                                    Text="{Binding MaxRetries, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="5,0"
+                                    IsEnabled="{Binding AutoDetect}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" 
+                                      Text="(0 = infinite)" 
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+                        </Grid>
+
+                        <CheckBox Content="Show notification when rotation detected"
+                                 IsChecked="{Binding ShowNotification}"
+                                 IsEnabled="{Binding AutoDetect}"
+                                 Margin="0,10,0,0"/>
+                        
+                        <CheckBox Content="Log rotation events to application log"
+                                 IsChecked="{Binding LogRotationEvents}"
+                                 IsEnabled="{Binding AutoDetect}"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- File Deletion Handling -->
+                <GroupBox Header="File Deletion Handling">
+                    <StackPanel Margin="10">
+                        <TextBlock Text="Configure how the application responds when a monitored file is deleted or moved."
+                                  FontStyle="Italic"
+                                  Margin="0,0,0,10"/>
+
+                        <CheckBox Content="Show warning when file is deleted"
+                                 IsChecked="{Binding ShowWarning}"/>
+
+                        <CheckBox Content="Stop monitoring immediately on deletion"
+                                 IsChecked="{Binding StopMonitoringImmediately}"
+                                 Margin="0,10,0,0"/>
+                        
+                        <CheckBox Content="Automatically wait for file to be recreated"
+                                 IsChecked="{Binding AutoWaitForRecreation}"
+                                 IsEnabled="{Binding IsAutoWaitEnabled}"/>
+
+                        <Grid Margin="20,10,0,0" IsEnabled="{Binding IsDeletionBehaviorEnabled}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Row="0" Grid.Column="0" Content="Wait timeout:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" 
+                                    Text="{Binding WaitTimeoutSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="5,0"/>
+                            <TextBlock Grid.Row="0" Grid.Column="2" 
+                                      Text="seconds (0 = wait indefinitely)" 
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+
+                            <Label Grid.Row="1" Grid.Column="0" Content="Check interval:" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" 
+                                    Text="{Binding DeletionCheckIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                    Margin="5,0"/>
+                            <TextBlock Grid.Row="1" Grid.Column="2" 
+                                      Text="seconds" 
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+                        </Grid>
+
+                        <CheckBox Content="Prompt user for action on deletion"
+                                 IsChecked="{Binding PromptUserOnDeletion}"
+                                 IsEnabled="{Binding IsAutoWaitEnabled}"
+                                 Margin="20,10,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Help Text -->
+                <Border Background="#252526" 
+                       BorderBrush="#3E3E42" 
+                       BorderThickness="1" 
+                       Padding="10" 
+                       Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="About File Rotation:" FontWeight="Bold" Foreground="White" Margin="0,0,0,5"/>
+                        <TextBlock Text="File rotation occurs when log files are renamed or recreated by logging systems (logrotate, Serilog, NLog, etc.). These settings control how the application handles such scenarios."/>
+                        <TextBlock Text="" Margin="0,5,0,0"/>
+                        <TextBlock Text="- Auto-detect: Uses FileSystemWatcher to detect file changes in real-time" FontSize="11"/>
+                        <TextBlock Text="- Wait for recreation: Automatically resumes monitoring when the file reappears" FontSize="11"/>
+                        <TextBlock Text="- Timeout: Maximum time to wait before giving up (0 = wait forever)" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="Apply" Click="Apply_Click" Width="80"/>
+            <Button Content="Cancel" Click="Cancel_Click" Width="80"/>
+        </StackPanel>
+    </Grid>
+</Window>
