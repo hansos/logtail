@@ -13,12 +13,34 @@ public class FileMonitorService : IDisposable
     private FileSystemWatcher? _watcher;
     private string? _filePath;
     private readonly ILogger _logger = Log.ForContext<FileMonitorService>();
+    private bool _isPaused;
+    private int _bufferedChangeCount;
 
     public event EventHandler? FileChanged;
     public event EventHandler? FileDeleted;
+    public event EventHandler? BufferedCountChanged;
 
     public bool IsWatcherActive { get; private set; }
     public MonitoringMode ActiveMode { get; private set; } = MonitoringMode.Auto;
+    
+    public bool IsPaused
+    {
+        get => _isPaused;
+        private set
+        {
+            if (_isPaused != value)
+            {
+                _isPaused = value;
+                if (!_isPaused)
+                {
+                    _bufferedChangeCount = 0;
+                    BufferedCountChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
+    }
+    
+    public int BufferedCount => _bufferedChangeCount;
 
     public FileMonitorService()
     {
@@ -34,6 +56,10 @@ public class FileMonitorService : IDisposable
         _filePath = filePath;
         ActiveMode = mode;
         StopMonitoring();
+        
+        // Reset pause state when starting new monitoring
+        _isPaused = false;
+        _bufferedChangeCount = 0;
 
         var usePolling = mode == MonitoringMode.PollingOnly || IsNetworkPath(filePath);
         if (usePolling)
@@ -100,6 +126,15 @@ public class FileMonitorService : IDisposable
             return;
 
         _logger.Debug("File change event received for {FilePath}", e.FullPath);
+        
+        if (_isPaused)
+        {
+            _bufferedChangeCount++;
+            BufferedCountChanged?.Invoke(this, EventArgs.Empty);
+            _logger.Debug("File change buffered while paused. Buffered count: {Count}", _bufferedChangeCount);
+            return;
+        }
+        
         _debounceTimer.Stop();
         _debounceTimer.Start();
     }
@@ -171,5 +206,31 @@ public class FileMonitorService : IDisposable
     {
         StopMonitoring();
         _debounceTimer.Tick -= DebounceTimer_Tick;
+    }
+    
+    public void Pause()
+    {
+        if (_isPaused)
+            return;
+            
+        IsPaused = true;
+        _bufferedChangeCount = 0;
+        _logger.Information("Monitoring paused for {FilePath}", _filePath);
+    }
+    
+    public void Resume()
+    {
+        if (!_isPaused)
+            return;
+            
+        var bufferedCount = _bufferedChangeCount;
+        IsPaused = false;
+        _logger.Information("Monitoring resumed for {FilePath}. Buffered changes: {Count}", _filePath, bufferedCount);
+        
+        // Trigger a refresh to catch up with buffered changes
+        if (bufferedCount > 0)
+        {
+            FileChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 }

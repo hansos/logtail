@@ -14,6 +14,7 @@
         <KeyBinding Key="F5" Command="{Binding RefreshCommand}"/>
         <KeyBinding Key="F" Modifiers="Ctrl" Command="{Binding FilterCommand}"/>
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SettingsCommand}"/>
+        <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding PauseResumeCommand}"/>
     </Window.InputBindings>
     <Window.Style>
         <Style TargetType="Window">
@@ -89,6 +90,8 @@
                 <MenuItem Header="_Filter..." Command="{Binding FilterCommand}" InputGestureText="Ctrl+F"/>
                 <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}" InputGestureText="Ctrl+S"/>
                 <Separator/>
+                <MenuItem Header="{Binding PauseResumeButtonText}" Command="{Binding PauseResumeCommand}" InputGestureText="Ctrl+Space">
+                </MenuItem>
                 <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}" InputGestureText="F5"/>
             </MenuItem>
             <MenuItem Header="_Help">

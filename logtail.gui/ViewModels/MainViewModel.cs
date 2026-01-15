@@ -31,6 +31,10 @@ public class MainViewModel : INotifyPropertyChanged
     private HashSet<string> _availableSources = new();
     private HashSet<string> _selectedSources = new();
     private bool _isBusy;
+    private bool _isMonitoringPaused;
+    private int _bufferedEntryCount;
+    private string _defaultStatusBarColor = "#007ACC";
+    private string _pausedStatusBarColor = "#FFA500";
 
     public BulkObservableCollection<LogEntryViewModel> LogEntries { get; } = new();
     public ObservableCollection<string> RecentFiles { get; } = new();
@@ -74,6 +78,38 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+    
+    public bool IsMonitoringPaused
+    {
+        get => _isMonitoringPaused;
+        set
+        {
+            _isMonitoringPaused = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PauseResumeButtonText));
+            OnPropertyChanged(nameof(PauseResumeButtonIcon));
+            UpdateStatusBarColor();
+            UpdateStatusText();
+        }
+    }
+    
+    public int BufferedEntryCount
+    {
+        get => _bufferedEntryCount;
+        set
+        {
+            _bufferedEntryCount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(BufferedCountText));
+            UpdateStatusText();
+        }
+    }
+    
+    public string PauseResumeButtonText => IsMonitoringPaused ? "Resume" : "Pause";
+    
+    public string PauseResumeButtonIcon => IsMonitoringPaused ? "?" : "?";
+    
+    public string BufferedCountText => BufferedEntryCount > 0 ? $" ({BufferedEntryCount} new)" : string.Empty;
 
     public string FilePath
     {
@@ -93,6 +129,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand ExitCommand { get; }
     public ICommand OpenRecentFileCommand { get; }
     public ICommand AboutCommand { get; }
+    public ICommand PauseResumeCommand { get; }
 
     public MainViewModel()
     {
@@ -103,6 +140,7 @@ public class MainViewModel : INotifyPropertyChanged
         _fileMonitorService = new FileMonitorService();
         _fileMonitorService.FileChanged += FileMonitorService_FileChanged;
         _fileMonitorService.FileDeleted += FileMonitorService_FileDeleted;
+        _fileMonitorService.BufferedCountChanged += FileMonitorService_BufferedCountChanged;
         
         // Load settings from disk
         var settings = _settingsManager.LoadSettings();
@@ -138,6 +176,9 @@ public class MainViewModel : INotifyPropertyChanged
         {
             _selectedSources = settings.Filter.SelectedSources.ToHashSet();
         }
+        
+        // Load pause settings
+        _pausedStatusBarColor = settings.Preferences.PauseStatusBarColor;
 
         _refreshTimer = new DispatcherTimer
         {
@@ -153,6 +194,7 @@ public class MainViewModel : INotifyPropertyChanged
         ExitCommand = new RelayCommand(_ => Application.Current.Shutdown());
         OpenRecentFileCommand = new RelayCommand(OpenRecentFile);
         AboutCommand = new RelayCommand(ShowAboutDialog);
+        PauseResumeCommand = new RelayCommand(TogglePauseResume, CanPauseResume);
 
         LoadRecentFiles();
     }
@@ -270,8 +312,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         LogCount = LogEntries.Count;
         
-        var filterInfo = GetFilterInfo();
-        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo} | Mode: {GetMonitoringModeLabel()}";
+        UpdateStatusText();
     }
 
     private void PerformIncrementalUpdate(List<string> addedLines, List<string> allFiltered)
@@ -318,8 +359,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         LogCount = LogEntries.Count;
         
-        var filterInfo = GetFilterInfo();
-        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo} | Mode: {GetMonitoringModeLabel()}";
+        UpdateStatusText();
     }
 
     private string GetFilterInfo()
@@ -472,6 +512,11 @@ public class MainViewModel : INotifyPropertyChanged
             _availableSources.Clear();
             _selectedSources.Clear();
             _previousOutput = null; // Force full reload for new file
+            
+            // Reset pause state when opening new file
+            IsMonitoringPaused = false;
+            BufferedEntryCount = 0;
+            
             SetupMonitoringForCurrentFile();
             Refresh(null);
 
@@ -508,6 +553,10 @@ public class MainViewModel : INotifyPropertyChanged
         // Reset filters
         _options.Levels.Clear();
         _options.Filter = string.Empty;
+        
+        // Reset pause state
+        IsMonitoringPaused = false;
+        BufferedEntryCount = 0;
 
         // Clear file path
         FilePath = string.Empty;
@@ -515,6 +564,7 @@ public class MainViewModel : INotifyPropertyChanged
         // Update status
         LogCount = 0;
         StatusText = "No file open";
+        UpdateStatusBarColor();
 
         // Save settings
         SaveAppPreferences();
@@ -600,6 +650,96 @@ public class MainViewModel : INotifyPropertyChanged
             _refreshTimer.Stop();
             _fileMonitorService.StopMonitoring();
         }, DispatcherPriority.Background);
+    }
+    
+    private void FileMonitorService_BufferedCountChanged(object? sender, EventArgs e)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            BufferedEntryCount = _fileMonitorService.BufferedCount;
+        }, DispatcherPriority.Background);
+    }
+    
+    private void TogglePauseResume(object? parameter)
+    {
+        if (IsMonitoringPaused)
+        {
+            ResumeMonitoring();
+        }
+        else
+        {
+            PauseMonitoring();
+        }
+    }
+    
+    private bool CanPauseResume(object? parameter)
+    {
+        // If paused, always allow resume (as long as a file is open)
+        if (IsMonitoringPaused)
+            return !string.IsNullOrEmpty(_options.FilePath);
+        
+        // If not paused, allow pause only if monitoring is active
+        return !string.IsNullOrEmpty(_options.FilePath) && 
+               (_fileMonitorService.IsWatcherActive || _refreshTimer.IsEnabled);
+    }
+    
+    private void PauseMonitoring()
+    {
+        IsMonitoringPaused = true;
+        _fileMonitorService.Pause();
+        _refreshTimer.Stop();
+    }
+    
+    private void ResumeMonitoring()
+    {
+        var bufferedCount = BufferedEntryCount;
+        IsMonitoringPaused = false;
+        _fileMonitorService.Resume();
+        
+        if (!_fileMonitorService.IsWatcherActive)
+        {
+            _refreshTimer.Start();
+        }
+        
+        // Force a refresh to show buffered changes
+        if (bufferedCount > 0)
+        {
+            Refresh(null);
+            
+            var settings = _settingsManager.LoadSettings();
+            if (settings.Preferences.ShowPauseNotification)
+            {
+                var tempStatus = StatusText;
+                StatusText = $"Resumed - Refreshed with buffered changes";
+                Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    System.Threading.Thread.Sleep(3000);
+                    if (StatusText.StartsWith("Resumed -"))
+                    {
+                        UpdateStatusText();
+                    }
+                }, DispatcherPriority.Background);
+            }
+        }
+    }
+    
+    private void UpdateStatusBarColor()
+    {
+        var color = IsMonitoringPaused ? _pausedStatusBarColor : _defaultStatusBarColor;
+        StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+    }
+    
+    private void UpdateStatusText()
+    {
+        if (string.IsNullOrEmpty(_options.FilePath))
+        {
+            StatusText = "No file open";
+            return;
+        }
+        
+        var filterInfo = GetFilterInfo();
+        var pauseInfo = IsMonitoringPaused ? $" | PAUSED{BufferedCountText}" : string.Empty;
+        StatusText = $"Showing {LogCount} log entries from {Path.GetFileName(_options.FilePath)} - Last updated: {DateTime.Now:HH:mm:ss}{filterInfo}{pauseInfo} | Mode: {GetMonitoringModeLabel()}";
     }
 
     private void SetupMonitoringForCurrentFile()
