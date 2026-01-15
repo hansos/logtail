@@ -1,12 +1,17 @@
 ﻿<Window x:Class="logtail.gui.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:logtail.gui"
-        mc:Ignorable="d"
-        Title="LogTail Viewer" Height="600" Width="1000"
-        Background="#1E1E1E">
+xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+xmlns:local="clr-namespace:logtail.gui"
+mc:Ignorable="d"
+Title="LogTail Viewer" Height="600" Width="1000"
+Background="#1E1E1E"
+AllowDrop="True"
+DragEnter="Window_DragEnter"
+DragOver="Window_DragOver"
+DragLeave="Window_DragLeave"
+Drop="Window_Drop">
     <Window.InputBindings>
         <KeyBinding Key="F1" Command="{Binding AboutCommand}"/>
         <KeyBinding Key="O" Modifiers="Ctrl" Command="{Binding OpenFileCommand}"/>

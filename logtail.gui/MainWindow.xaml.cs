@@ -364,5 +364,155 @@ namespace logtail.gui
             }
             return null;
         }
+
+        #region Drag and Drop Event Handlers
+
+        private void Window_DragEnter(object sender, DragEventArgs e)
+        {
+            if (IsValidFileDrop(e))
+            {
+                e.Effects = DragDropEffects.Copy;
+                
+                // Update status bar to show drag feedback
+                _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#0078D4"));
+                _viewModel.StatusText = "Drop file to open";
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void Window_DragOver(object sender, DragEventArgs e)
+        {
+            if (IsValidFileDrop(e))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+            e.Handled = true;
+        }
+
+        private void Window_DragLeave(object sender, DragEventArgs e)
+        {
+            // Restore normal status bar
+            _viewModel.UpdateStatusBarColor();
+            _viewModel.UpdateStatusText();
+        }
+
+        private void Window_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                if (e.Data.GetDataPresent(DataFormats.FileDrop))
+                {
+                    string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                    
+                    if (files != null && files.Length > 0)
+                    {
+                        var filePath = files[0]; // Open first file if multiple dropped
+                        
+                        // Validate file exists and is not a directory
+                        if (File.Exists(filePath))
+                        {
+                            // Use the existing OpenLogFile method through the ViewModel
+                            // We need to access the private method, so we'll use the OpenFileCommand
+                            // Actually, let's call the view model's method directly
+                            var openFileMethod = _viewModel.GetType().GetMethod("OpenLogFile", 
+                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            
+                            if (openFileMethod != null)
+                            {
+                                openFileMethod.Invoke(_viewModel, new object[] { filePath });
+                                
+                                // Show success message
+                                var fileInfo = new FileInfo(filePath);
+                                _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+                                _viewModel.StatusText = $"Opened: {fileInfo.Name}";
+                                
+                                // Reset status bar after 2.5 seconds
+                                Task.Delay(2500).ContinueWith(_ =>
+                                {
+                                    Dispatcher.Invoke(() =>
+                                    {
+                                        _viewModel.UpdateStatusBarColor();
+                                        _viewModel.UpdateStatusText();
+                                    });
+                                });
+                            }
+                        }
+                        else if (Directory.Exists(filePath))
+                        {
+                            _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D13438"));
+                            _viewModel.StatusText = "Cannot open folders - please drop a file";
+                            
+                            // Reset status bar after 3 seconds
+                            Task.Delay(3000).ContinueWith(_ =>
+                            {
+                                Dispatcher.Invoke(() =>
+                                {
+                                    _viewModel.UpdateStatusBarColor();
+                                    _viewModel.UpdateStatusText();
+                                });
+                            });
+                        }
+                        else
+                        {
+                            _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D13438"));
+                            _viewModel.StatusText = $"File not found: {Path.GetFileName(filePath)}";
+                            
+                            // Reset status bar after 3 seconds
+                            Task.Delay(3000).ContinueWith(_ =>
+                            {
+                                Dispatcher.Invoke(() =>
+                                {
+                                    _viewModel.UpdateStatusBarColor();
+                                    _viewModel.UpdateStatusText();
+                                });
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#D13438"));
+                _viewModel.StatusText = $"Error opening file: {ex.Message}";
+                
+                // Reset status bar after 3 seconds
+                Task.Delay(3000).ContinueWith(_ =>
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        _viewModel.UpdateStatusBarColor();
+                        _viewModel.UpdateStatusText();
+                    });
+                });
+            }
+            finally
+            {
+                e.Handled = true;
+            }
+        }
+
+        private bool IsValidFileDrop(DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
+                return false;
+
+            var files = e.Data.GetData(DataFormats.FileDrop) as string[];
+            if (files == null || files.Length == 0)
+                return false;
+
+            // Check if the first item is a file (not a directory)
+            var firstPath = files[0];
+            return File.Exists(firstPath);
+        }
+
+        #endregion
     }
 }
