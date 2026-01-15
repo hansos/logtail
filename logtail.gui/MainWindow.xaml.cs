@@ -16,6 +16,7 @@ namespace logtail.gui
     {
         private readonly MainViewModel _viewModel;
         private bool _isInitialized = false;
+        private CancellationTokenSource? _statusBarResetCts;
 
         public MainWindow()
         {
@@ -82,6 +83,10 @@ namespace logtail.gui
 
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            // Cancel any pending status bar reset
+            _statusBarResetCts?.Cancel();
+            _statusBarResetCts?.Dispose();
+            
             _viewModel.Stop();
             SaveWindowState();
         }
@@ -143,6 +148,12 @@ namespace logtail.gui
             if (LogListView.SelectedItem is not LogEntryViewModel selectedEntry)
                 return;
 
+            // Cancel any previous status bar reset timer
+            _statusBarResetCts?.Cancel();
+            _statusBarResetCts?.Dispose();
+            _statusBarResetCts = new CancellationTokenSource();
+            var currentToken = _statusBarResetCts.Token;
+
             // Try to open file in Visual Studio if the log entry contains a file path
             if (VisualStudioLauncher.TryExtractFileInfo(selectedEntry.Text, out string filePath, out int lineNumber))
             {
@@ -150,15 +161,24 @@ namespace logtail.gui
                 
                 if (success)
                 {
-                    var originalStatusText = _viewModel.StatusText;
-                    var originalBackground = _viewModel.StatusBarBackground;
-
                     _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
                     _viewModel.StatusText = $"Opening {Path.GetFileName(filePath)}:line {lineNumber} in Visual Studio";
 
-                    await Task.Delay(2500);
-                    _viewModel.StatusBarBackground = originalBackground;
-                    _viewModel.StatusText = originalStatusText;
+                    try
+                    {
+                        await Task.Delay(2500, currentToken);
+                        
+                        // Only reset if this token hasn't been cancelled
+                        if (!currentToken.IsCancellationRequested)
+                        {
+                            _viewModel.UpdateStatusBarColor();
+                            _viewModel.UpdateStatusText();
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        // Timer was cancelled by a new click - this is expected
+                    }
                     return;
                 }
             }
@@ -187,21 +207,29 @@ namespace logtail.gui
             // Copy to clipboard
             try
             {
-                // 1) Copy the existing text to a local variable
-                var originalStatusText = _viewModel.StatusText;
-                var originalBackground = _viewModel.StatusBarBackground;
-
-                // 2) Change the background color to a green one matching the default blue one
+                // Change the background color to green
                 _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
 
-                // 3) Write the new text
+                // Write the new text
                 Clipboard.SetText(textToCopy);
                 _viewModel.StatusText = $"Copied {entriesToCopy.Count} line{(entriesToCopy.Count > 1 ? "s" : "")} to clipboard";
 
-                // 4) Wait for 5 seconds and reset color and text to the original one
-                await Task.Delay(2500);
-                _viewModel.StatusBarBackground = originalBackground;
-                _viewModel.StatusText = originalStatusText;
+                // Wait for 2.5 seconds and reset color and text
+                try
+                {
+                    await Task.Delay(2500, currentToken);
+                    
+                    // Only reset if this token hasn't been cancelled
+                    if (!currentToken.IsCancellationRequested)
+                    {
+                        _viewModel.UpdateStatusBarColor();
+                        _viewModel.UpdateStatusText();
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // Timer was cancelled by a new click - this is expected
+                }
             }
             catch (Exception ex)
             {
@@ -236,6 +264,17 @@ namespace logtail.gui
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Handle Ctrl+Space for pause/resume regardless of focus
+            if (e.Key == Key.Space && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (_viewModel.PauseResumeCommand.CanExecute(null))
+                {
+                    _viewModel.PauseResumeCommand.Execute(null);
+                    e.Handled = true;
+                }
+                return;
+            }
+
             if (LogListView == null || LogListView.Items.Count == 0)
                 return;
 

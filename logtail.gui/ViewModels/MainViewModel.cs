@@ -723,13 +723,13 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
     
-    private void UpdateStatusBarColor()
+    public void UpdateStatusBarColor()
     {
         var color = IsMonitoringPaused ? _pausedStatusBarColor : _defaultStatusBarColor;
         StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
     }
     
-    private void UpdateStatusText()
+    public void UpdateStatusText()
     {
         if (string.IsNullOrEmpty(_options.FilePath))
         {
