@@ -297,7 +297,10 @@ public class MainViewModel : INotifyPropertyChanged
             }
 
             // Apply source filter
-            if (_selectedSources.Count == 0 || _selectedSources.Contains(entry.Source))
+            // Include lines without a source (continuation lines like stack traces)
+            if (_selectedSources.Count == 0 || 
+                string.IsNullOrWhiteSpace(entry.Source) || 
+                _selectedSources.Contains(entry.Source))
             {
                 entriesToAdd.Add(entry);
             }
@@ -331,7 +334,10 @@ public class MainViewModel : INotifyPropertyChanged
             }
 
             // Apply source filter
-            if (_selectedSources.Count == 0 || _selectedSources.Contains(entry.Source))
+            // Include lines without a source (continuation lines like stack traces)
+            if (_selectedSources.Count == 0 || 
+                string.IsNullOrWhiteSpace(entry.Source) || 
+                _selectedSources.Contains(entry.Source))
             {
                 newEntries.Add(entry);
             }
