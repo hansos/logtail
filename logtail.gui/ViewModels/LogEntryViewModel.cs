@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
 using LogTail.Core.Models;
@@ -62,4 +63,35 @@ public class LogEntryViewModel
 
         return viewModel;
     }
+
+    public static bool TryParseTimestamp(string timestamp, out DateTime dateTime)
+    {
+        dateTime = DateTime.MinValue;
+
+        if (string.IsNullOrWhiteSpace(timestamp))
+            return false;
+
+        // Try common timestamp formats
+        string[] formats = new[]
+        {
+            "yyyy-MM-dd HH:mm:ss.fff",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-ddTHH:mm:ss.fff",
+            "yyyy-MM-ddTHH:mm:ss",
+            "dd/MM/yyyy HH:mm:ss",
+            "MM/dd/yyyy HH:mm:ss",
+            "yyyy/MM/dd HH:mm:ss"
+        };
+
+        foreach (var format in formats)
+        {
+            if (DateTime.TryParseExact(timestamp, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTime))
+                return true;
+        }
+
+        // Fallback to general parsing
+        return DateTime.TryParse(timestamp, out dateTime);
+    }
 }
+
+

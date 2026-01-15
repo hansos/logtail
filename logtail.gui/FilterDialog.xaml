@@ -4,8 +4,9 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:logtail.gui"
+    xmlns:converters="clr-namespace:logtail.gui.Converters"
     mc:Ignorable="d"
-    Title="Filter Settings" Height="520" Width="500"
+    Title="Filter Settings" Height="620" Width="500"
     Background="#1E1E1E"
     WindowStartupLocation="CenterOwner"
     ResizeMode="NoResize">
@@ -14,6 +15,7 @@
     <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
 </Window.InputBindings>
     <Window.Resources>
+        <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
         <Style TargetType="Label">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontWeight" Value="Bold"/>
@@ -29,6 +31,47 @@
             <Setter Property="BorderBrush" Value="#3E3E42"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Height" Value="25"/>
+        </Style>
+        <Style TargetType="DatePicker">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3E3E42"/>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="CalendarStyle">
+                <Setter.Value>
+                    <Style TargetType="Calendar">
+                        <Setter Property="Background" Value="#F0F0F0"/>
+                        <Setter Property="Foreground" Value="Black"/>
+                        <Setter Property="BorderBrush" Value="#3E3E42"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Style.Resources>
+                <Style TargetType="DatePickerTextBox">
+                    <Setter Property="Background" Value="#252526"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#3E3E42"/>
+                    <Setter Property="Padding" Value="5,0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="DatePickerTextBox">
+                                <Grid>
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="0">
+                                        <ScrollViewer x:Name="PART_ContentHost"
+                                                     Foreground="{TemplateBinding Foreground}"
+                                                     HorizontalAlignment="Stretch"
+                                                     VerticalAlignment="Center"
+                                                     Padding="{TemplateBinding Padding}"/>
+                                    </Border>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Style.Resources>
         </Style>
         <Style TargetType="Button">
             <Setter Property="Background" Value="#0E639C"/>
@@ -59,6 +102,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -84,8 +128,47 @@
             </StackPanel>
         </GroupBox>
 
+        <!-- Date/Time Range Filter -->
+        <GroupBox Grid.Row="2" Header="Date/Time Range Filter">
+            <StackPanel Margin="5">
+                <CheckBox Content="Filter by date/time range" 
+                         IsChecked="{Binding IsDateTimeFilterEnabled}"
+                         Margin="0,0,0,10"/>
+                <Grid IsEnabled="{Binding IsDateTimeFilterEnabled}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <Label Grid.Row="0" Grid.Column="0" Content="From:" VerticalAlignment="Center" Margin="0,0,10,5"/>
+                    <DatePicker Grid.Row="0" Grid.Column="1" 
+                               SelectedDate="{Binding FromDateTime}"
+                               Margin="0,0,5,5"/>
+                    <TextBox Grid.Row="0" Grid.Column="2"
+                            Text="{Binding FromTimeText, UpdateSourceTrigger=PropertyChanged}"
+                            Width="80"
+                            ToolTip="Time (HH:mm:ss or HH:mm)"
+                            Margin="0,0,0,5"/>
+                    
+                    <Label Grid.Row="1" Grid.Column="0" Content="To:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <DatePicker Grid.Row="1" Grid.Column="1" 
+                               SelectedDate="{Binding ToDateTime}"
+                               Margin="0,0,5,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="2"
+                            Text="{Binding ToTimeText, UpdateSourceTrigger=PropertyChanged}"
+                            Width="80"
+                            ToolTip="Time (HH:mm:ss or HH:mm)"/>
+                </Grid>
+            </StackPanel>
+        </GroupBox>
+
         <!-- Sources -->
-        <GroupBox Grid.Row="2" Header="Sources" Height="170">
+        <GroupBox Grid.Row="3" Header="Sources" Height="170">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding Sources}" Margin="5">
                     <ItemsControl.ItemTemplate>
@@ -100,7 +183,7 @@
         </GroupBox>
 
         <!-- Buttons -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
             <Button Content="Apply" Click="Apply_Click" Width="80"/>
             <Button Content="Cancel" Click="Cancel_Click" Width="80"/>
         </StackPanel>

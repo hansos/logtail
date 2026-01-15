@@ -9,6 +9,11 @@ namespace logtail.gui.ViewModels;
 public class FilterDialogViewModel : INotifyPropertyChanged
 {
     private string _messageFilter = string.Empty;
+    private bool _isDateTimeFilterEnabled;
+    private DateTime? _fromDateTime;
+    private DateTime? _toDateTime;
+    private string _fromTimeText = "00:00:00";
+    private string _toTimeText = "23:59:59";
     
     public ICommand? ApplyCommand { get; set; }
     public ICommand? CancelCommand { get; set; }
@@ -36,6 +41,56 @@ public class FilterDialogViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool IsDateTimeFilterEnabled
+    {
+        get => _isDateTimeFilterEnabled;
+        set
+        {
+            _isDateTimeFilterEnabled = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public DateTime? FromDateTime
+    {
+        get => _fromDateTime;
+        set
+        {
+            _fromDateTime = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public DateTime? ToDateTime
+    {
+        get => _toDateTime;
+        set
+        {
+            _toDateTime = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string FromTimeText
+    {
+        get => _fromTimeText;
+        set
+        {
+            _fromTimeText = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string ToTimeText
+    {
+        get => _toTimeText;
+        set
+        {
+            _toTimeText = value;
+            OnPropertyChanged();
+        }
+    }
+
     public void LoadFromOptions(LogTailOptions options)
     {
         MessageFilter = options.Filter ?? string.Empty;
@@ -45,6 +100,31 @@ public class FilterDialogViewModel : INotifyPropertyChanged
         {
             levelItem.IsChecked = options.Levels.Count == 0 || 
                                  options.Levels.Contains(levelItem.Level);
+        }
+
+        // Load date/time filter settings
+        IsDateTimeFilterEnabled = options.IsDateTimeFilterEnabled;
+        
+        if (options.FromDateTime.HasValue)
+        {
+            FromDateTime = options.FromDateTime.Value.Date;
+            FromTimeText = options.FromDateTime.Value.ToString("HH:mm:ss");
+        }
+        else
+        {
+            FromDateTime = null;
+            FromTimeText = "00:00:00";
+        }
+            
+        if (options.ToDateTime.HasValue)
+        {
+            ToDateTime = options.ToDateTime.Value.Date;
+            ToTimeText = options.ToDateTime.Value.ToString("HH:mm:ss");
+        }
+        else
+        {
+            ToDateTime = null;
+            ToTimeText = "23:59:59";
         }
     }
 
@@ -64,6 +144,25 @@ public class FilterDialogViewModel : INotifyPropertyChanged
                 options.Levels.Add(level);
             }
         }
+
+        // Apply date/time filter settings with time components
+        options.IsDateTimeFilterEnabled = IsDateTimeFilterEnabled;
+        options.FromDateTime = CombineDateAndTime(FromDateTime, FromTimeText);
+        options.ToDateTime = CombineDateAndTime(ToDateTime, ToTimeText);
+    }
+
+    private static DateTime? CombineDateAndTime(DateTime? date, string timeText)
+    {
+        if (!date.HasValue)
+            return null;
+
+        if (TimeSpan.TryParse(timeText, out TimeSpan time))
+        {
+            return date.Value.Date.Add(time);
+        }
+
+        // Default to start of day if parsing fails
+        return date.Value.Date;
     }
 
     public void UpdateSources(IEnumerable<string> sources, HashSet<string>? selectedSources = null)

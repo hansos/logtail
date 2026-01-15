@@ -403,6 +403,18 @@ public class MainViewModel : INotifyPropertyChanged
         if (!string.IsNullOrWhiteSpace(_options.Filter))
             parts.Add($"Filter: '{_options.Filter}'");
 
+        if (_options.IsDateTimeFilterEnabled)
+        {
+            var dateRangeText = "Date/Time: ";
+            if (_options.FromDateTime.HasValue && _options.ToDateTime.HasValue)
+                dateRangeText += $"{_options.FromDateTime.Value:yyyy-MM-dd HH:mm:ss} to {_options.ToDateTime.Value:yyyy-MM-dd HH:mm:ss}";
+            else if (_options.FromDateTime.HasValue)
+                dateRangeText += $"from {_options.FromDateTime.Value:yyyy-MM-dd HH:mm:ss}";
+            else if (_options.ToDateTime.HasValue)
+                dateRangeText += $"to {_options.ToDateTime.Value:yyyy-MM-dd HH:mm:ss}";
+            parts.Add(dateRangeText);
+        }
+
         return parts.Count > 0 ? $" | {string.Join(" | ", parts)}" : string.Empty;
     }
 
@@ -691,6 +703,9 @@ public class MainViewModel : INotifyPropertyChanged
         settings.Filter.SelectedSources = _selectedSources.ToList();
         settings.Filter.MessageFilter = _options.Filter;
         settings.Filter.LogFormatName = _options.LogFormatName;
+        settings.Filter.IsDateTimeFilterEnabled = _options.IsDateTimeFilterEnabled;
+        settings.Filter.FromDateTime = _options.FromDateTime;
+        settings.Filter.ToDateTime = _options.ToDateTime;
 
         return settings;
     }

@@ -36,6 +36,11 @@ public class FilterSettings
     public List<string> SelectedSources { get; set; } = new();
     public string? MessageFilter { get; set; }
     public string LogFormatName { get; set; } = "Default";
+    
+    // Date/Time Range Filter
+    public bool IsDateTimeFilterEnabled { get; set; } = false;
+    public DateTime? FromDateTime { get; set; }
+    public DateTime? ToDateTime { get; set; }
 }
 
 public class AppPreferences

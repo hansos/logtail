@@ -1,4 +1,5 @@
 using LogTail.Core.Models;
+using System.Globalization;
 
 namespace LogTail.Core.Services;
 
@@ -52,7 +53,8 @@ public sealed class LogFilter
             if (currentHeader == null) return;
 
             if (MatchesLevel(currentHeader) &&
-                MatchesText(currentBlock, options.Filter))
+                MatchesText(currentBlock, options.Filter) &&
+                MatchesDateTimeRange(currentHeader, options))
             {
                 buffer.AddRange(currentBlock);
             }
@@ -75,6 +77,65 @@ public sealed class LogFilter
         {
             if (string.IsNullOrWhiteSpace(filter)) return true;
             return block.Any(l => l.Contains(filter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        bool MatchesDateTimeRange(string line, LogTailOptions opts)
+        {
+            if (!opts.IsDateTimeFilterEnabled) return true;
+            if (!opts.FromDateTime.HasValue && !opts.ToDateTime.HasValue) return true;
+
+            var parsed = _parser.ParseLogLine(line);
+            if (string.IsNullOrWhiteSpace(parsed.Timestamp)) return false;
+
+            if (TryParseTimestamp(parsed.Timestamp, out DateTime logDateTime))
+            {
+                if (opts.FromDateTime.HasValue && logDateTime < opts.FromDateTime.Value)
+                    return false;
+
+                if (opts.ToDateTime.HasValue)
+                {
+                    // If To time is midnight (00:00:00), treat it as end of that day
+                    var toDateTime = opts.ToDateTime.Value;
+                    if (toDateTime.TimeOfDay == TimeSpan.Zero)
+                    {
+                        toDateTime = toDateTime.Date.AddDays(1).AddTicks(-1); // 23:59:59.9999999
+                    }
+                    
+                    if (logDateTime > toDateTime)
+                        return false;
+                }
+
+                return true;
+            }
+
+            // If we can't parse the timestamp, exclude it when date filter is active
+            return false;
+        }
+
+        static bool TryParseTimestamp(string timestamp, out DateTime dateTime)
+        {
+            dateTime = DateTime.MinValue;
+
+            // Try common timestamp formats
+            string[] formats = new[]
+            {
+                "yyyy-MM-dd HH:mm:ss.fff",
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-ddTHH:mm:ss.fff",
+                "yyyy-MM-ddTHH:mm:ss",
+                "dd/MM/yyyy HH:mm:ss",
+                "MM/dd/yyyy HH:mm:ss",
+                "yyyy/MM/dd HH:mm:ss"
+            };
+
+            foreach (var format in formats)
+            {
+                if (DateTime.TryParseExact(timestamp, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out dateTime))
+                    return true;
+            }
+
+            // Fallback to general parsing
+            return DateTime.TryParse(timestamp, out dateTime);
         }
     }
 }

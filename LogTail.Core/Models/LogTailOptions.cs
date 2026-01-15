@@ -9,6 +9,11 @@ public sealed class LogTailOptions
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromSeconds(5);
     public MonitoringMode MonitoringMode { get; set; } = MonitoringMode.Auto;
     public string LogFormatName { get; set; } = "Default";
+    
+    // Date/Time Range Filter
+    public bool IsDateTimeFilterEnabled { get; set; } = false;
+    public DateTime? FromDateTime { get; set; }
+    public DateTime? ToDateTime { get; set; }
 }
 
 public enum MonitoringMode
