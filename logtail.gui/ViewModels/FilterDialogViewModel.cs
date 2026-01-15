@@ -14,6 +14,7 @@ public class FilterDialogViewModel : INotifyPropertyChanged
     private DateTime? _toDateTime;
     private string _fromTimeText = "00:00:00";
     private string _toTimeText = "23:59:59";
+    private DateTime? _defaultLogDate;
     
     public ICommand? ApplyCommand { get; set; }
     public ICommand? CancelCommand { get; set; }
@@ -46,8 +47,26 @@ public class FilterDialogViewModel : INotifyPropertyChanged
         get => _isDateTimeFilterEnabled;
         set
         {
-            _isDateTimeFilterEnabled = value;
-            OnPropertyChanged();
+            if (_isDateTimeFilterEnabled != value)
+            {
+                _isDateTimeFilterEnabled = value;
+                OnPropertyChanged();
+
+                // Auto-populate dates if not set and we have a default date
+                if (_isDateTimeFilterEnabled && _defaultLogDate.HasValue)
+                {
+                    if (!FromDateTime.HasValue)
+                    {
+                        FromDateTime = _defaultLogDate.Value;
+                        FromTimeText = "00:00:00";
+                    }
+                    if (!ToDateTime.HasValue)
+                    {
+                        ToDateTime = _defaultLogDate.Value;
+                        ToTimeText = "23:59:59";
+                    }
+                }
+            }
         }
     }
 
@@ -193,6 +212,26 @@ public class FilterDialogViewModel : INotifyPropertyChanged
         var selected = Sources.Where(s => s.IsChecked).Select(s => s.Source).ToHashSet();
         // If all are selected, return empty set (no filter)
         return selected.Count == Sources.Count ? new HashSet<string>() : selected;
+    }
+
+    public void SetDefaultDateFromFirstLog(DateTime? firstLogDate)
+    {
+        _defaultLogDate = firstLogDate;
+        
+        // If date/time filter is already enabled and dates are not set, auto-populate now
+        if (_isDateTimeFilterEnabled && _defaultLogDate.HasValue)
+        {
+            if (!FromDateTime.HasValue)
+            {
+                FromDateTime = _defaultLogDate.Value;
+                FromTimeText = "00:00:00";
+            }
+            if (!ToDateTime.HasValue)
+            {
+                ToDateTime = _defaultLogDate.Value;
+                ToTimeText = "23:59:59";
+            }
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

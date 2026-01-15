@@ -428,6 +428,15 @@ public class MainViewModel : INotifyPropertyChanged
         // Update sources
         filterViewModel.UpdateSources(_availableSources, _selectedSources);
 
+        // Get first visible log entry's timestamp for default date range
+        DateTime? firstLogDate = null;
+        var firstEntry = LogEntries.FirstOrDefault(e => !string.IsNullOrWhiteSpace(e.Timestamp));
+        if (firstEntry != null && LogEntryViewModel.TryParseTimestamp(firstEntry.Timestamp, out DateTime parsedDate))
+        {
+            firstLogDate = parsedDate.Date;
+        }
+        filterViewModel.SetDefaultDateFromFirstLog(firstLogDate);
+
         var dialog = new FilterDialog(filterViewModel)
         {
             Owner = Application.Current.MainWindow
