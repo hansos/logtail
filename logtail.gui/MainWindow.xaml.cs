@@ -406,6 +406,12 @@ namespace logtail.gui
 
         private async void Window_Drop(object sender, DragEventArgs e)
         {
+            // Cancel any previous status bar reset timer
+            _statusBarResetCts?.Cancel();
+            _statusBarResetCts?.Dispose();
+            _statusBarResetCts = new CancellationTokenSource();
+            var currentToken = _statusBarResetCts.Token;
+
             try
             {
                 if (e.Data.GetDataPresent(DataFormats.FileDrop))
@@ -428,14 +434,20 @@ namespace logtail.gui
                             _viewModel.StatusText = $"Opened: {fileInfo.Name}";
                             
                             // Reset status bar after 2.5 seconds
-                            Task.Delay(2500).ContinueWith(_ =>
+                            try
                             {
-                                Dispatcher.Invoke(() =>
+                                await Task.Delay(2500, currentToken);
+                                
+                                if (!currentToken.IsCancellationRequested)
                                 {
                                     _viewModel.UpdateStatusBarColor();
                                     _viewModel.UpdateStatusText();
-                                });
-                            });
+                                }
+                            }
+                            catch (TaskCanceledException)
+                            {
+                                // Timer was cancelled - this is expected
+                            }
                         }
                         else if (Directory.Exists(filePath))
                         {
@@ -443,14 +455,20 @@ namespace logtail.gui
                             _viewModel.StatusText = "Cannot open folders - please drop a file";
                             
                             // Reset status bar after 3 seconds
-                            Task.Delay(3000).ContinueWith(_ =>
+                            try
                             {
-                                Dispatcher.Invoke(() =>
+                                await Task.Delay(3000, currentToken);
+                                
+                                if (!currentToken.IsCancellationRequested)
                                 {
                                     _viewModel.UpdateStatusBarColor();
                                     _viewModel.UpdateStatusText();
-                                });
-                            });
+                                }
+                            }
+                            catch (TaskCanceledException)
+                            {
+                                // Timer was cancelled - this is expected
+                            }
                         }
                         else
                         {
@@ -458,14 +476,20 @@ namespace logtail.gui
                             _viewModel.StatusText = $"File not found: {Path.GetFileName(filePath)}";
                             
                             // Reset status bar after 3 seconds
-                            Task.Delay(3000).ContinueWith(_ =>
+                            try
                             {
-                                Dispatcher.Invoke(() =>
+                                await Task.Delay(3000, currentToken);
+                                
+                                if (!currentToken.IsCancellationRequested)
                                 {
                                     _viewModel.UpdateStatusBarColor();
                                     _viewModel.UpdateStatusText();
-                                });
-                            });
+                                }
+                            }
+                            catch (TaskCanceledException)
+                            {
+                                // Timer was cancelled - this is expected
+                            }
                         }
                     }
                 }
@@ -476,14 +500,20 @@ namespace logtail.gui
                 _viewModel.StatusText = $"Error opening file: {ex.Message}";
                 
                 // Reset status bar after 3 seconds
-                Task.Delay(3000).ContinueWith(_ =>
+                try
                 {
-                    Dispatcher.Invoke(() =>
+                    await Task.Delay(3000, currentToken);
+                    
+                    if (!currentToken.IsCancellationRequested)
                     {
                         _viewModel.UpdateStatusBarColor();
                         _viewModel.UpdateStatusText();
-                    });
-                });
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    // Timer was cancelled - this is expected
+                }
             }
             finally
             {
