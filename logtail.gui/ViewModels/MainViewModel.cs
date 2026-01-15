@@ -23,6 +23,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly RecentFilesManager _recentFilesManager;
     private readonly SettingsManager _settingsManager;
     private readonly FileMonitorService _fileMonitorService;
+    private readonly ILogFileValidator _fileValidator;
     private LogTailOptions _options;
     private string _statusText = "Ready";
     private Brush _statusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#007ACC"));
@@ -138,6 +139,7 @@ public class MainViewModel : INotifyPropertyChanged
         _recentFilesManager = new RecentFilesManager();
         _settingsManager = new SettingsManager();
         _fileMonitorService = new FileMonitorService();
+        _fileValidator = new LogFileValidator();
         _fileMonitorService.FileChanged += FileMonitorService_FileChanged;
         _fileMonitorService.FileDeleted += FileMonitorService_FileDeleted;
         _fileMonitorService.BufferedCountChanged += FileMonitorService_BufferedCountChanged;
@@ -199,7 +201,7 @@ public class MainViewModel : INotifyPropertyChanged
         LoadRecentFiles();
     }
 
-    public void Start()
+    public async void Start()
     {
         // If no file is currently set, try to load the most recent file
         if (string.IsNullOrEmpty(_options.FilePath))
@@ -207,7 +209,8 @@ public class MainViewModel : INotifyPropertyChanged
             var recentFiles = _recentFilesManager.GetRecentFiles();
             if (recentFiles.Count > 0 && File.Exists(recentFiles[0]))
             {
-                OpenLogFile(recentFiles[0]);
+                // Skip validation for recent files
+                await OpenLogFileAsync(recentFiles[0], validateFile: false);
                 return;
             }
         }
@@ -223,6 +226,16 @@ public class MainViewModel : INotifyPropertyChanged
     {
         _refreshTimer.Stop();
         _fileMonitorService.StopMonitoring();
+    }
+
+    /// <summary>
+    /// Opens a log file with validation. This can be called from UI components like drag-and-drop.
+    /// </summary>
+    /// <param name="filePath">Path to the file to open</param>
+    /// <param name="validateFile">Whether to validate the file before opening</param>
+    public async Task OpenFileAsync(string filePath, bool validateFile = true)
+    {
+        await OpenLogFileAsync(filePath, validateFile);
     }
 
     private void RefreshTimer_Tick(object? sender, EventArgs e)
@@ -487,7 +500,7 @@ public class MainViewModel : INotifyPropertyChanged
         // A more complete solution would integrate source filtering into LogTailService
     }
 
-    private void OpenFile(object? parameter)
+    private async void OpenFile(object? parameter)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
@@ -497,23 +510,45 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (dialog.ShowDialog() == true)
         {
-            OpenLogFile(dialog.FileName);
+            await OpenLogFileAsync(dialog.FileName, validateFile: true);
         }
     }
 
-    private void OpenRecentFile(object? parameter)
+    private async void OpenRecentFile(object? parameter)
     {
         if (parameter is string filePath && File.Exists(filePath))
         {
-            OpenLogFile(filePath);
+            // Skip validation for recent files - they were validated when first opened
+            await OpenLogFileAsync(filePath, validateFile: false);
         }
     }
 
-    private void OpenLogFile(string filePath)
+    private async Task OpenLogFileAsync(string filePath, bool validateFile)
     {
         IsBusy = true;
         try
         {
+            // Validate the file if requested
+            if (validateFile)
+            {
+                var validationResult = await _fileValidator.ValidateAsync(filePath);
+                
+                if (!validationResult.IsValid)
+                {
+                    // Ask user if they want to open anyway
+                    var result = MessageBox.Show(
+                        $"{validationResult.ErrorMessage}\n\nThis file may not be a supported log file format. Are you sure you want to open it?",
+                        "File Validation Warning",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+                    
+                    if (result != MessageBoxResult.Yes)
+                    {
+                        return;
+                    }
+                }
+            }
+            
             FilePath = filePath;
             _availableSources.Clear();
             _selectedSources.Clear();

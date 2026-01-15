@@ -404,7 +404,7 @@ namespace logtail.gui
             _viewModel.UpdateStatusText();
         }
 
-        private void Window_Drop(object sender, DragEventArgs e)
+        private async void Window_Drop(object sender, DragEventArgs e)
         {
             try
             {
@@ -419,31 +419,23 @@ namespace logtail.gui
                         // Validate file exists and is not a directory
                         if (File.Exists(filePath))
                         {
-                            // Use the existing OpenLogFile method through the ViewModel
-                            // We need to access the private method, so we'll use the OpenFileCommand
-                            // Actually, let's call the view model's method directly
-                            var openFileMethod = _viewModel.GetType().GetMethod("OpenLogFile", 
-                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            // Use the public OpenFileAsync method with validation
+                            await _viewModel.OpenFileAsync(filePath, validateFile: true);
                             
-                            if (openFileMethod != null)
+                            // Show success message
+                            var fileInfo = new FileInfo(filePath);
+                            _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+                            _viewModel.StatusText = $"Opened: {fileInfo.Name}";
+                            
+                            // Reset status bar after 2.5 seconds
+                            Task.Delay(2500).ContinueWith(_ =>
                             {
-                                openFileMethod.Invoke(_viewModel, new object[] { filePath });
-                                
-                                // Show success message
-                                var fileInfo = new FileInfo(filePath);
-                                _viewModel.StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
-                                _viewModel.StatusText = $"Opened: {fileInfo.Name}";
-                                
-                                // Reset status bar after 2.5 seconds
-                                Task.Delay(2500).ContinueWith(_ =>
+                                Dispatcher.Invoke(() =>
                                 {
-                                    Dispatcher.Invoke(() =>
-                                    {
-                                        _viewModel.UpdateStatusBarColor();
-                                        _viewModel.UpdateStatusText();
-                                    });
+                                    _viewModel.UpdateStatusBarColor();
+                                    _viewModel.UpdateStatusText();
                                 });
-                            }
+                            });
                         }
                         else if (Directory.Exists(filePath))
                         {
