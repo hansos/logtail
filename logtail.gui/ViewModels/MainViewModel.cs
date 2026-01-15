@@ -32,6 +32,7 @@ public class MainViewModel : INotifyPropertyChanged
     private List<string>? _previousOutput;
     private HashSet<string> _availableSources = new();
     private HashSet<string> _selectedSources = new();
+    private HashSet<string> _availableLevels = new();
     private bool _isBusy;
     private bool _isMonitoringPaused;
     private int _bufferedEntryCount;
@@ -133,6 +134,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand OpenRecentFileCommand { get; }
     public ICommand AboutCommand { get; }
     public ICommand PauseResumeCommand { get; }
+    public ICommand RemoveLevelCommand { get; }
+    public ICommand AddLevelCommand { get; }
+    public ICommand CopyLineCommand { get; }
+    public ICommand OpenInVisualStudioCommand { get; }
 
     public MainViewModel()
     {
@@ -206,6 +211,10 @@ public class MainViewModel : INotifyPropertyChanged
         OpenRecentFileCommand = new RelayCommand(OpenRecentFile);
         AboutCommand = new RelayCommand(ShowAboutDialog);
         PauseResumeCommand = new RelayCommand(TogglePauseResume, CanPauseResume);
+        RemoveLevelCommand = new RelayCommand(RemoveLevel, CanRemoveLevel);
+        AddLevelCommand = new RelayCommand(AddLevel, CanAddLevel);
+        CopyLineCommand = new RelayCommand(CopyLine, CanCopyLine);
+        OpenInVisualStudioCommand = new RelayCommand(OpenInVisualStudio, CanOpenInVisualStudio);
 
         LoadRecentFiles();
     }
@@ -307,6 +316,7 @@ public class MainViewModel : INotifyPropertyChanged
     private void PerformFullReload(List<string> filtered)
     {
         var newSources = new HashSet<string>();
+        var newLevels = new HashSet<string>();
         var entriesToAdd = new List<LogEntryViewModel>();
 
         foreach (var line in filtered)
@@ -316,6 +326,11 @@ public class MainViewModel : INotifyPropertyChanged
             if (!string.IsNullOrWhiteSpace(entry.Source))
             {
                 newSources.Add(entry.Source);
+            }
+
+            if (!string.IsNullOrWhiteSpace(entry.LevelText))
+            {
+                newLevels.Add(entry.LevelText);
             }
 
             // Apply source filter
@@ -332,8 +347,14 @@ public class MainViewModel : INotifyPropertyChanged
         LogEntries.Clear();
         LogEntries.AddRange(entriesToAdd);
 
-        // Update available sources
+        // Update available sources and levels
+        // Sources are replaced each time (current state)
         _availableSources = newSources;
+        // Levels are cumulative - keep previously seen levels even if filtered out
+        foreach (var level in newLevels)
+        {
+            _availableLevels.Add(level);
+        }
 
         LogCount = LogEntries.Count;
         
@@ -344,6 +365,7 @@ public class MainViewModel : INotifyPropertyChanged
     {
         var newEntries = new List<LogEntryViewModel>();
         var newSources = new HashSet<string>(_availableSources);
+        var newLevels = new HashSet<string>(_availableLevels);
 
         // Parse only the new lines
         foreach (var line in addedLines)
@@ -353,6 +375,11 @@ public class MainViewModel : INotifyPropertyChanged
             if (!string.IsNullOrWhiteSpace(entry.Source))
             {
                 newSources.Add(entry.Source);
+            }
+
+            if (!string.IsNullOrWhiteSpace(entry.LevelText))
+            {
+                newLevels.Add(entry.LevelText);
             }
 
             // Apply source filter
@@ -382,12 +409,40 @@ public class MainViewModel : INotifyPropertyChanged
             LogEntries.AddRange(newEntries);
         }
 
-        // Update available sources
+        // Update available sources and levels
+        // Sources are replaced each time (current state)
         _availableSources = newSources;
+        // Levels are cumulative - keep previously seen levels even if filtered out
+        foreach (var level in newLevels)
+        {
+            _availableLevels.Add(level);
+        }
 
         LogCount = LogEntries.Count;
         
         UpdateStatusText();
+    }
+
+    /// <summary>
+    /// Gets a list of log levels that are currently filtered out (hidden)
+    /// </summary>
+    public List<string> GetFilteredLevels()
+    {
+        // If no levels are filtered (all shown), return empty list
+        if (_options.Levels.Count == 0)
+        {
+            return new List<string>();
+        }
+        
+        // Build the complete set of known levels (standard + available)
+        var allLevels = new HashSet<string> { "VERBOSE", "DBUG", "INFO", "WARNING", "ERROR", "EROR", "FATAL" };
+        foreach (var availableLevel in _availableLevels)
+        {
+            allLevels.Add(availableLevel);
+        }
+        
+        // Return levels that are NOT in the current filter (i.e., hidden levels)
+        return allLevels.Where(level => !_options.Levels.Contains(level)).OrderBy(l => l).ToList();
     }
 
     private string GetFilterInfo()
@@ -614,6 +669,7 @@ public class MainViewModel : INotifyPropertyChanged
             FilePath = filePath;
             _availableSources.Clear();
             _selectedSources.Clear();
+            _availableLevels.Clear();
             _previousOutput = null; // Force full reload for new file
             
             // Reset pause state when opening new file
@@ -652,6 +708,7 @@ public class MainViewModel : INotifyPropertyChanged
         _previousOutput = null;
         _availableSources.Clear();
         _selectedSources.Clear();
+        _availableLevels.Clear();
 
         // Reset filters
         _options.Levels.Clear();
@@ -891,6 +948,171 @@ public class MainViewModel : INotifyPropertyChanged
                     }
                 }, DispatcherPriority.Background);
             }
+        }
+    }
+    
+    private bool CanRemoveLevel(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return false;
+        
+        // Can only remove level if the entry has a level and it's currently visible
+        return !string.IsNullOrWhiteSpace(entry.LevelText);
+    }
+
+    private void RemoveLevel(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return;
+        
+        var level = entry.LevelText;
+        if (string.IsNullOrWhiteSpace(level))
+            return;
+        
+        // If no levels are currently filtered (all shown), we need to show all levels except this one
+        if (_options.Levels.Count == 0)
+        {
+            // Use the standard levels from the Filter dialog as the base
+            var allLevels = new HashSet<string> { "VERBOSE", "DBUG", "INFO", "WARNING", "ERROR", "EROR", "FATAL" };
+            
+            // Also include any levels actually seen in the log (in case they use different names)
+            foreach (var availableLevel in _availableLevels)
+            {
+                allLevels.Add(availableLevel);
+            }
+            
+            // Add all levels EXCEPT the one being removed
+            foreach (var lvl in allLevels)
+            {
+                if (lvl != level)
+                {
+                    _options.Levels.Add(lvl);
+                }
+            }
+        }
+        else
+        {
+            // Already in filter mode - just remove this level from the visible list
+            _options.Levels.Remove(level);
+        }
+        
+        // Ensure this level is in _availableLevels (for the Add Level menu)
+        if (!_availableLevels.Contains(level))
+        {
+            _availableLevels.Add(level);
+        }
+        
+        // Save filter settings and refresh
+        SaveFilterSettings();
+        _previousOutput = null; // Force refresh
+        Refresh(null);
+    }
+
+    private bool CanAddLevel(object? parameter)
+    {
+        // Can add level if there are any filtered levels
+        return GetFilteredLevels().Count > 0;
+    }
+
+    private void AddLevel(object? parameter)
+    {
+        if (parameter is not string level)
+            return;
+        
+        // Add the level back to the visible list
+        if (!_options.Levels.Contains(level))
+        {
+            _options.Levels.Add(level);
+        }
+        
+        // Check if all standard levels plus available levels are now visible - if so, clear the filter (show all)
+        var allLevels = new HashSet<string> { "VERBOSE", "DBUG", "INFO", "WARNING", "ERROR", "EROR", "FATAL" };
+        foreach (var availableLevel in _availableLevels)
+        {
+            allLevels.Add(availableLevel);
+        }
+        
+        if (allLevels.All(lvl => _options.Levels.Contains(lvl)))
+        {
+            _options.Levels.Clear();
+        }
+        
+        // Save filter settings and refresh
+        SaveFilterSettings();
+        _previousOutput = null; // Force refresh
+        Refresh(null);
+    }
+
+    private bool CanCopyLine(object? parameter)
+    {
+        return parameter is LogEntryViewModel;
+    }
+
+    private void CopyLine(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return;
+        
+        try
+        {
+            Clipboard.SetText(entry.Text);
+            
+            // Show success status
+            StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+            StatusText = "Copied line to clipboard";
+            
+            // Reset status after 2.5 seconds
+            Task.Delay(2500).ContinueWith(_ =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    UpdateStatusBarColor();
+                    UpdateStatusText();
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error copying to clipboard: {ex.Message}";
+        }
+    }
+
+    private bool CanOpenInVisualStudio(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return false;
+        
+        return entry.HasFileReference;
+    }
+
+    private void OpenInVisualStudio(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry || !entry.HasFileReference)
+            return;
+        
+        try
+        {
+            var success = VisualStudioLauncher.OpenInVisualStudio(entry.FilePath!, entry.LineNumber ?? 1);
+            
+            if (success)
+            {
+                StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+                StatusText = $"Opening {Path.GetFileName(entry.FilePath)}:line {entry.LineNumber} in Visual Studio";
+                
+                // Reset status after 2.5 seconds
+                Task.Delay(2500).ContinueWith(_ =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        UpdateStatusBarColor();
+                        UpdateStatusText();
+                    });
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error opening in Visual Studio: {ex.Message}";
         }
     }
     

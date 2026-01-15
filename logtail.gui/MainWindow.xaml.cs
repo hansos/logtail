@@ -536,5 +536,60 @@ namespace logtail.gui
         }
 
         #endregion
+
+        #region Context Menu Event Handlers
+
+        private void ContextMenu_Opened(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ContextMenu contextMenu)
+                return;
+
+            // Find the AddLevelMenuItem
+            MenuItem? addLevelMenuItem = null;
+            foreach (var item in contextMenu.Items)
+            {
+                if (item is MenuItem menuItem && menuItem.Header?.ToString() == "Add Level")
+                {
+                    addLevelMenuItem = menuItem;
+                    break;
+                }
+            }
+
+            if (addLevelMenuItem == null)
+                return;
+
+            // Clear existing submenu items
+            addLevelMenuItem.Items.Clear();
+
+            // Get filtered (hidden) levels from view model
+            var filteredLevels = _viewModel.GetFilteredLevels();
+
+            if (filteredLevels.Count == 0)
+            {
+                // No filtered levels - show a disabled item
+                var noLevelsItem = new MenuItem
+                {
+                    Header = "(No filtered levels)",
+                    IsEnabled = false
+                };
+                addLevelMenuItem.Items.Add(noLevelsItem);
+            }
+            else
+            {
+                // Add a menu item for each filtered level
+                foreach (var level in filteredLevels)
+                {
+                    var levelMenuItem = new MenuItem
+                    {
+                        Header = level,
+                        Command = _viewModel.AddLevelCommand,
+                        CommandParameter = level
+                    };
+                    addLevelMenuItem.Items.Add(levelMenuItem);
+                }
+            }
+        }
+
+        #endregion
     }
 }

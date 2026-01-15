@@ -128,6 +128,24 @@ Drop="Window_Drop">
                   VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling"
                   MouseDoubleClick="LogListView_MouseDoubleClick">
+            <ListView.ContextMenu>
+                <ContextMenu Opened="ContextMenu_Opened">
+                    <MenuItem Header="Remove Level" 
+                              Command="{Binding RemoveLevelCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    <MenuItem Header="Add Level" 
+                              x:Name="AddLevelMenuItem">
+                        <MenuItem Header="(Loading...)" IsEnabled="False"/>
+                    </MenuItem>
+                    <Separator/>
+                    <MenuItem Header="Copy Line" 
+                              Command="{Binding CopyLineCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    <MenuItem Header="Open in Visual Studio" 
+                              Command="{Binding OpenInVisualStudioCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                </ContextMenu>
+            </ListView.ContextMenu>
             <ListView.View>
                 <GridView>
                     <GridViewColumn Header="Time">
