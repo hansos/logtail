@@ -95,8 +95,8 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.  
-The icons used in this project are licensed under the Apache License 2.0 as per the terms on *icon-icons.com*. See [CREDITS.md](CREDITS.md) for details.
+- This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.  
+- The icons used in this project are licensed under the Apache License 2.0 as per the terms on *icon-icons.com*. See [CREDITS.md](CREDITS.md) for details.
 
 ## Roadmap
 
