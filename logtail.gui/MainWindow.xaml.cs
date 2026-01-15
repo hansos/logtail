@@ -145,6 +145,11 @@ namespace logtail.gui
 
         private async void LogListView_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
+            await HandleLogEntryAction();
+        }
+
+        private async Task HandleLogEntryAction()
+        {
             if (LogListView.SelectedItem is not LogEntryViewModel selectedEntry)
                 return;
 
@@ -262,7 +267,7 @@ namespace logtail.gui
             gridView.Columns[3].Width = Math.Max(200, remainingWidth);
         }
 
-        private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+        private async void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // Handle Ctrl+Space for pause/resume regardless of focus
             if (e.Key == Key.Space && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
@@ -270,6 +275,17 @@ namespace logtail.gui
                 if (_viewModel.PauseResumeCommand.CanExecute(null))
                 {
                     _viewModel.PauseResumeCommand.Execute(null);
+                    e.Handled = true;
+                }
+                return;
+            }
+
+            // Handle Ctrl+Enter for log entry actions (open in VS or copy to clipboard)
+            if (e.Key == Key.Enter && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                if (LogListView?.SelectedItem != null)
+                {
+                    await HandleLogEntryAction();
                     e.Handled = true;
                 }
                 return;
