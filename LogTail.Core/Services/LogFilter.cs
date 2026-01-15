@@ -16,6 +16,7 @@ public sealed class LogFilter
         var buffer = new List<string>();
         string? currentHeader = null;
         var currentBlock = new List<string>();
+        var orphanedLines = new List<string>(); // Lines before the first header
 
         foreach (var line in lines)
         {
@@ -27,11 +28,23 @@ public sealed class LogFilter
             }
             else
             {
-                currentBlock.Add(line);
+                if (currentHeader == null)
+                {
+                    // Lines before any header - keep track of them separately
+                    orphanedLines.Add(line);
+                }
+                else
+                {
+                    currentBlock.Add(line);
+                }
             }
         }
 
         FlushBlock();
+        
+        // Discard orphaned lines at the start (they're likely partial/clipped entries
+        // from reading backwards in the file)
+        
         return buffer;
 
         void FlushBlock()
