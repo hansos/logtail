@@ -24,6 +24,7 @@ public class MainViewModel : INotifyPropertyChanged
     private readonly SettingsManager _settingsManager;
     private readonly FileMonitorService _fileMonitorService;
     private readonly ILogFileValidator _fileValidator;
+    private readonly BookmarkAnnotationManager _bookmarkManager;
     private readonly Serilog.ILogger _logger = Serilog.Log.ForContext<MainViewModel>();
     private LogTailOptions _options;
     private string _statusText = "Ready";
@@ -139,6 +140,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand CopyLineCommand { get; }
     public ICommand CopySelectedLinesCommand { get; }
     public ICommand OpenInVisualStudioCommand { get; }
+    public ICommand ToggleBookmarkCommand { get; }
+    public ICommand AddAnnotationCommand { get; }
+    public ICommand NextBookmarkCommand { get; }
+    public ICommand PreviousBookmarkCommand { get; }
 
     public MainViewModel()
     {
@@ -148,6 +153,7 @@ public class MainViewModel : INotifyPropertyChanged
         _settingsManager = new SettingsManager();
         _fileMonitorService = new FileMonitorService();
         _fileValidator = new LogFileValidator();
+        _bookmarkManager = new BookmarkAnnotationManager();
         _fileMonitorService.FileChanged += FileMonitorService_FileChanged;
         _fileMonitorService.FileDeleted += FileMonitorService_FileDeleted;
         _fileMonitorService.BufferedCountChanged += FileMonitorService_BufferedCountChanged;
@@ -217,6 +223,10 @@ public class MainViewModel : INotifyPropertyChanged
         CopyLineCommand = new RelayCommand(CopyLine, CanCopyLine);
         CopySelectedLinesCommand = new RelayCommand(CopySelectedLines, CanCopySelectedLines);
         OpenInVisualStudioCommand = new RelayCommand(OpenInVisualStudio, CanOpenInVisualStudio);
+        ToggleBookmarkCommand = new RelayCommand(ToggleBookmark, CanToggleBookmark);
+        AddAnnotationCommand = new RelayCommand(AddAnnotation, CanAddAnnotation);
+        NextBookmarkCommand = new RelayCommand(NavigateToNextBookmark, CanNavigateBookmarks);
+        PreviousBookmarkCommand = new RelayCommand(NavigateToPreviousBookmark, CanNavigateBookmarks);
 
         LoadRecentFiles();
     }
@@ -237,6 +247,9 @@ public class MainViewModel : INotifyPropertyChanged
 
         if (!string.IsNullOrEmpty(_options.FilePath) && File.Exists(_options.FilePath))
         {
+            // Load bookmarks for the current file
+            _bookmarkManager.LoadForFile(_options.FilePath);
+            
             SetupMonitoringForCurrentFile();
             Refresh(null);
         }
@@ -244,6 +257,9 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void Stop()
     {
+        // Save bookmarks before stopping
+        _bookmarkManager.SaveCurrent();
+        
         _refreshTimer.Stop();
         _fileMonitorService.StopMonitoring();
     }
@@ -360,6 +376,9 @@ public class MainViewModel : INotifyPropertyChanged
 
         LogCount = LogEntries.Count;
         
+        // Apply bookmarks and annotations
+        ApplyBookmarksAndAnnotations();
+        
         UpdateStatusText();
     }
 
@@ -409,6 +428,17 @@ public class MainViewModel : INotifyPropertyChanged
         if (newEntries.Count > 0)
         {
             LogEntries.AddRange(newEntries);
+            
+            // Apply bookmarks and annotations to new entries only
+            foreach (var entry in newEntries)
+            {
+                var bookmarkEntry = _bookmarkManager.GetEntry(entry.Text);
+                if (bookmarkEntry != null)
+                {
+                    entry.IsBookmarked = bookmarkEntry.IsBookmark;
+                    entry.Annotation = bookmarkEntry.Annotation;
+                }
+            }
         }
 
         // Update available sources and levels
@@ -556,10 +586,6 @@ public class MainViewModel : INotifyPropertyChanged
                 _logTailService.Parser.SetFormat(selectedFormat);
             }
 
-            // Update timer interval
-            _refreshTimer.Stop();
-            _refreshTimer.Interval = _options.RefreshRate;
-
             // Save app preferences
             SaveAppPreferences();
 
@@ -678,6 +704,9 @@ public class MainViewModel : INotifyPropertyChanged
             IsMonitoringPaused = false;
             BufferedEntryCount = 0;
             
+            // Load bookmarks and annotations for this file
+            _bookmarkManager.LoadForFile(filePath);
+            
             SetupMonitoringForCurrentFile();
             Refresh(null);
 
@@ -701,6 +730,9 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void CloseFile(object? parameter)
     {
+        // Save bookmarks before closing
+        _bookmarkManager.SaveCurrent();
+        
         // Stop monitoring and timer
         _refreshTimer.Stop();
         _fileMonitorService.StopMonitoring();
@@ -1215,6 +1247,185 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         return _options.MonitoringMode == MonitoringMode.RealTimeOnly ? "Polling (fallback)" : "Polling";
+    }
+    
+    private bool CanToggleBookmark(object? parameter)
+    {
+        return parameter is LogEntryViewModel;
+    }
+
+    private void ToggleBookmark(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return;
+
+        try
+        {
+            var lineNumber = LogEntries.IndexOf(entry);
+            var isBookmarked = _bookmarkManager.ToggleBookmark(entry.Text, lineNumber);
+            entry.IsBookmarked = isBookmarked;
+            
+            // Save bookmarks
+            _bookmarkManager.SaveCurrent();
+            
+            // Show status
+            StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+            StatusText = isBookmarked ? "Bookmark added" : "Bookmark removed";
+            
+            // Reset status after 2.5 seconds
+            Task.Delay(2500).ContinueWith(_ =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    UpdateStatusBarColor();
+                    UpdateStatusText();
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error toggling bookmark: {ex.Message}";
+        }
+    }
+
+    private bool CanAddAnnotation(object? parameter)
+    {
+        return parameter is LogEntryViewModel;
+    }
+
+    private void AddAnnotation(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return;
+
+        try
+        {
+            var dialog = new AnnotationDialog(entry.Annotation)
+            {
+                Owner = Application.Current.MainWindow
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                var annotation = dialog.AnnotationText;
+                var lineNumber = LogEntries.IndexOf(entry);
+                
+                _bookmarkManager.SetAnnotation(entry.Text, lineNumber, annotation);
+                entry.Annotation = annotation;
+                
+                // Save annotations
+                _bookmarkManager.SaveCurrent();
+                
+                // Show status
+                StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+                StatusText = string.IsNullOrWhiteSpace(annotation) ? "Annotation removed" : "Annotation saved";
+                
+                // Reset status after 2.5 seconds
+                Task.Delay(2500).ContinueWith(_ =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        UpdateStatusBarColor();
+                        UpdateStatusText();
+                    });
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error setting annotation: {ex.Message}";
+        }
+    }
+
+    private bool CanNavigateBookmarks(object? parameter)
+    {
+        return !string.IsNullOrEmpty(_options.FilePath) && 
+               LogEntries.Any(e => e.IsBookmarked);
+    }
+
+    private void NavigateToNextBookmark(object? parameter)
+    {
+        if (parameter is not System.Windows.Controls.ListView listView)
+            return;
+
+        try
+        {
+            var currentIndex = listView.SelectedIndex;
+            var nextBookmark = LogEntries
+                .Skip(currentIndex + 1)
+                .FirstOrDefault(e => e.IsBookmarked);
+
+            if (nextBookmark != null)
+            {
+                listView.SelectedItem = nextBookmark;
+                listView.ScrollIntoView(nextBookmark);
+            }
+            else
+            {
+                // Wrap around to first bookmark
+                var firstBookmark = LogEntries.FirstOrDefault(e => e.IsBookmarked);
+                if (firstBookmark != null)
+                {
+                    listView.SelectedItem = firstBookmark;
+                    listView.ScrollIntoView(firstBookmark);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error navigating to bookmark: {ex.Message}";
+        }
+    }
+
+    private void NavigateToPreviousBookmark(object? parameter)
+    {
+        if (parameter is not System.Windows.Controls.ListView listView)
+            return;
+
+        try
+        {
+            var currentIndex = listView.SelectedIndex;
+            var previousBookmark = LogEntries
+                .Take(currentIndex)
+                .Reverse()
+                .FirstOrDefault(e => e.IsBookmarked);
+
+            if (previousBookmark != null)
+            {
+                listView.SelectedItem = previousBookmark;
+                listView.ScrollIntoView(previousBookmark);
+            }
+            else
+            {
+                // Wrap around to last bookmark
+                var lastBookmark = LogEntries.LastOrDefault(e => e.IsBookmarked);
+                if (lastBookmark != null)
+                {
+                    listView.SelectedItem = lastBookmark;
+                    listView.ScrollIntoView(lastBookmark);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error navigating to bookmark: {ex.Message}";
+        }
+    }
+    
+    /// <summary>
+    /// Applies bookmarks and annotations to the loaded log entries
+    /// </summary>
+    private void ApplyBookmarksAndAnnotations()
+    {
+        foreach (var entry in LogEntries)
+        {
+            var bookmarkEntry = _bookmarkManager.GetEntry(entry.Text);
+            if (bookmarkEntry != null)
+            {
+                entry.IsBookmarked = bookmarkEntry.IsBookmark;
+                entry.Annotation = bookmarkEntry.Annotation;
+            }
+        }
     }
 }
 

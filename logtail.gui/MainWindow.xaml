@@ -22,6 +22,9 @@ Drop="Window_Drop">
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SettingsCommand}"/>
         <KeyBinding Key="R" Modifiers="Ctrl" Command="{Binding FileRotationSettingsCommand}"/>
         <KeyBinding Key="Space" Modifiers="Ctrl" Command="{Binding PauseResumeCommand}"/>
+        <KeyBinding Key="B" Modifiers="Ctrl" Command="{Binding ToggleBookmarkCommand}" CommandParameter="{Binding ElementName=LogListView, Path=SelectedItem}"/>
+        <KeyBinding Key="F2" Command="{Binding NextBookmarkCommand}" CommandParameter="{Binding ElementName=LogListView}"/>
+        <KeyBinding Key="F2" Modifiers="Shift" Command="{Binding PreviousBookmarkCommand}" CommandParameter="{Binding ElementName=LogListView}"/>
     </Window.InputBindings>
     <Window.Style>
         <Style TargetType="Window">
@@ -119,6 +122,9 @@ Drop="Window_Drop">
                 <MenuItem Header="_Settings..." Command="{Binding SettingsCommand}" InputGestureText="Ctrl+S"/>
                 <MenuItem Header="File _Rotation..." Command="{Binding FileRotationSettingsCommand}" InputGestureText="Ctrl+R"/>
                 <Separator/>
+                <MenuItem Header="Next Bookmark" Command="{Binding NextBookmarkCommand}" CommandParameter="{Binding ElementName=LogListView}" InputGestureText="F2"/>
+                <MenuItem Header="Previous Bookmark" Command="{Binding PreviousBookmarkCommand}" CommandParameter="{Binding ElementName=LogListView}" InputGestureText="Shift+F2"/>
+                <Separator/>
                 <MenuItem Header="{Binding PauseResumeButtonText}" Command="{Binding PauseResumeCommand}" InputGestureText="Ctrl+Space">
                 </MenuItem>
                 <MenuItem Header="_Refresh" Command="{Binding RefreshCommand}" InputGestureText="F5"/>
@@ -152,6 +158,14 @@ Drop="Window_Drop">
                   MouseDoubleClick="LogListView_MouseDoubleClick">
             <ListView.ContextMenu>
                 <ContextMenu Opened="ContextMenu_Opened">
+                    <MenuItem Header="Toggle Bookmark" 
+                              Command="{Binding ToggleBookmarkCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                              InputGestureText="Ctrl+B"/>
+                    <MenuItem Header="Add/Edit Annotation..." 
+                              Command="{Binding AddAnnotationCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    <Separator/>
                     <MenuItem Header="Remove Level" 
                               Command="{Binding RemoveLevelCommand}" 
                               CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
@@ -173,6 +187,28 @@ Drop="Window_Drop">
             </ListView.ContextMenu>
             <ListView.View>
                 <GridView>
+                    <GridViewColumn Header="★" Width="30">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding BookmarkIcon}" 
+                                          Foreground="Gold"
+                                          FontSize="16"
+                                          HorizontalAlignment="Center"
+                                          TextWrapping="NoWrap"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="📝" Width="30">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding AnnotationIcon}" 
+                                          FontSize="14"
+                                          HorizontalAlignment="Center"
+                                          TextWrapping="NoWrap"
+                                          ToolTip="{Binding AnnotationTooltip}"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
                     <GridViewColumn Header="Time">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>

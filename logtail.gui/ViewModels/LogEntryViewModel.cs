@@ -1,4 +1,6 @@
+﻿using System.ComponentModel;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Windows.Media;
 using LogTail.Core.Models;
@@ -6,12 +8,15 @@ using LogTail.Core.Services;
 
 namespace logtail.gui.ViewModels;
 
-public class LogEntryViewModel
+public class LogEntryViewModel : INotifyPropertyChanged
 {
     private static readonly Regex FilePathPattern = new(
         @"(?:in\s+)?([a-zA-Z]:\\[^:]+\.cs):line\s+(\d+)",
         RegexOptions.Compiled | RegexOptions.IgnoreCase
     );
+
+    private bool _isBookmarked;
+    private string? _annotation;
 
     public string Text { get; set; } = string.Empty;
     public LogLevel? Level { get; set; }
@@ -23,6 +28,62 @@ public class LogEntryViewModel
     public string? FilePath { get; private set; }
     public int? LineNumber { get; private set; }
     public bool HasFileReference => !string.IsNullOrEmpty(FilePath) && LineNumber.HasValue;
+    
+    /// <summary>
+    /// Gets or sets whether this log entry is bookmarked
+    /// </summary>
+    public bool IsBookmarked
+    {
+        get => _isBookmarked;
+        set
+        {
+            if (_isBookmarked != value)
+            {
+                _isBookmarked = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(BookmarkIcon));
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets or sets the annotation text for this log entry
+    /// </summary>
+    public string? Annotation
+    {
+        get => _annotation;
+        set
+        {
+            if (_annotation != value)
+            {
+                _annotation = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasAnnotation));
+                OnPropertyChanged(nameof(AnnotationIcon));
+                OnPropertyChanged(nameof(AnnotationTooltip));
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Gets whether this log entry has an annotation
+    /// </summary>
+    public bool HasAnnotation => !string.IsNullOrWhiteSpace(_annotation);
+    
+    /// <summary>
+    /// Gets the bookmark icon (Unicode star)
+    /// </summary>
+    public string BookmarkIcon => _isBookmarked ? "★" : "";
+    
+    /// <summary>
+    /// Gets the annotation icon (Unicode note)
+    /// </summary>
+    public string AnnotationIcon => HasAnnotation ? "📝" : "";
+    
+    /// <summary>
+    /// Gets the annotation tooltip text
+    /// </summary>
+    public string? AnnotationTooltip => HasAnnotation ? _annotation : null;
     
     public Brush Foreground => Level switch
     {
@@ -92,6 +153,14 @@ public class LogEntryViewModel
         // Fallback to general parsing
         return DateTime.TryParse(timestamp, out dateTime);
     }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }
+
 
 
