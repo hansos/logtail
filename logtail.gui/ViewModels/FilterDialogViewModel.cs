@@ -18,6 +18,7 @@ public class FilterDialogViewModel : INotifyPropertyChanged
     
     public ICommand? ApplyCommand { get; set; }
     public ICommand? CancelCommand { get; set; }
+    public ICommand? SetFromTimeToNowCommand { get; set; }
 
     public ObservableCollection<LogLevelFilterItem> LogLevels { get; } = new()
     {
@@ -232,6 +233,13 @@ public class FilterDialogViewModel : INotifyPropertyChanged
                 ToTimeText = "23:59:59";
             }
         }
+    }
+
+    public void SetFromTimeToNow()
+    {
+        var now = DateTime.Now;
+        FromDateTime = now.Date;
+        FromTimeText = now.ToString("HH:mm:ss");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

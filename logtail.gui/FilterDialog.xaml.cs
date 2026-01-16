@@ -17,6 +17,7 @@ public partial class FilterDialog : Window
         // Set up commands for keyboard shortcuts
         ViewModel.ApplyCommand = new RelayCommand(_ => Apply_Click(this, new RoutedEventArgs()));
         ViewModel.CancelCommand = new RelayCommand(_ => Cancel_Click(this, new RoutedEventArgs()));
+        ViewModel.SetFromTimeToNowCommand = new RelayCommand(_ => ViewModel.SetFromTimeToNow());
     }
 
     private void Apply_Click(object sender, RoutedEventArgs e)
