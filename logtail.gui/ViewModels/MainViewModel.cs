@@ -137,6 +137,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand RemoveLevelCommand { get; }
     public ICommand AddLevelCommand { get; }
     public ICommand CopyLineCommand { get; }
+    public ICommand CopySelectedLinesCommand { get; }
     public ICommand OpenInVisualStudioCommand { get; }
 
     public MainViewModel()
@@ -214,6 +215,7 @@ public class MainViewModel : INotifyPropertyChanged
         RemoveLevelCommand = new RelayCommand(RemoveLevel, CanRemoveLevel);
         AddLevelCommand = new RelayCommand(AddLevel, CanAddLevel);
         CopyLineCommand = new RelayCommand(CopyLine, CanCopyLine);
+        CopySelectedLinesCommand = new RelayCommand(CopySelectedLines, CanCopySelectedLines);
         OpenInVisualStudioCommand = new RelayCommand(OpenInVisualStudio, CanOpenInVisualStudio);
 
         LoadRecentFiles();
@@ -1070,6 +1072,57 @@ public class MainViewModel : INotifyPropertyChanged
                     UpdateStatusText();
                 });
             });
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error copying to clipboard: {ex.Message}";
+        }
+    }
+
+    private bool CanCopySelectedLines(object? parameter)
+    {
+        // This command should only be enabled when there are 2 or more selected items
+        if (parameter is not System.Collections.IList selectedItems)
+            return false;
+        
+        return selectedItems.Count >= 2;
+    }
+
+    private void CopySelectedLines(object? parameter)
+    {
+        if (parameter is not System.Collections.IList selectedItems || selectedItems.Count < 2)
+            return;
+        
+        try
+        {
+            var lines = new List<string>();
+            foreach (var item in selectedItems)
+            {
+                if (item is LogEntryViewModel entry)
+                {
+                    lines.Add(entry.Text);
+                }
+            }
+            
+            if (lines.Count > 0)
+            {
+                var textToCopy = string.Join(Environment.NewLine, lines);
+                Clipboard.SetText(textToCopy);
+                
+                // Show success status
+                StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+                StatusText = $"Copied {lines.Count} lines to clipboard";
+                
+                // Reset status after 2.5 seconds
+                Task.Delay(2500).ContinueWith(_ =>
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        UpdateStatusBarColor();
+                        UpdateStatusText();
+                    });
+                });
+            }
         }
         catch (Exception ex)
         {

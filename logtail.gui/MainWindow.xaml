@@ -148,6 +148,7 @@ Drop="Window_Drop">
                   ScrollViewer.VerticalScrollBarVisibility="Auto"
                   VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.VirtualizationMode="Recycling"
+                  SelectionMode="Extended"
                   MouseDoubleClick="LogListView_MouseDoubleClick">
             <ListView.ContextMenu>
                 <ContextMenu Opened="ContextMenu_Opened">
@@ -162,6 +163,9 @@ Drop="Window_Drop">
                     <MenuItem Header="Copy Line" 
                               Command="{Binding CopyLineCommand}" 
                               CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    <MenuItem Header="Copy Selected Lines" 
+                              Command="{Binding CopySelectedLinesCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItems, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                     <MenuItem Header="Open in Visual Studio" 
                               Command="{Binding OpenInVisualStudioCommand}" 
                               CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
