@@ -166,6 +166,10 @@ Drop="Window_Drop">
                               Command="{Binding AddAnnotationCommand}" 
                               CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
                     <Separator/>
+                    <MenuItem Header="Log from here" 
+                              Command="{Binding LogFromHereCommand}" 
+                              CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                    <Separator/>
                     <MenuItem Header="Remove Level" 
                               Command="{Binding RemoveLevelCommand}" 
                               CommandParameter="{Binding PlacementTarget.SelectedItem, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>

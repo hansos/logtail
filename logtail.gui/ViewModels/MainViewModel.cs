@@ -144,6 +144,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand AddAnnotationCommand { get; }
     public ICommand NextBookmarkCommand { get; }
     public ICommand PreviousBookmarkCommand { get; }
+    public ICommand LogFromHereCommand { get; }
 
     public MainViewModel()
     {
@@ -227,6 +228,7 @@ public class MainViewModel : INotifyPropertyChanged
         AddAnnotationCommand = new RelayCommand(AddAnnotation, CanAddAnnotation);
         NextBookmarkCommand = new RelayCommand(NavigateToNextBookmark, CanNavigateBookmarks);
         PreviousBookmarkCommand = new RelayCommand(NavigateToPreviousBookmark, CanNavigateBookmarks);
+        LogFromHereCommand = new RelayCommand(LogFromHere, CanLogFromHere);
 
         LoadRecentFiles();
     }
@@ -1425,6 +1427,59 @@ public class MainViewModel : INotifyPropertyChanged
         catch (Exception ex)
         {
             StatusText = $"Error navigating to bookmark: {ex.Message}";
+        }
+    }
+
+    private bool CanLogFromHere(object? parameter)
+    {
+        return parameter is LogEntryViewModel entry && 
+               !string.IsNullOrWhiteSpace(entry.Timestamp);
+    }
+
+    private void LogFromHere(object? parameter)
+    {
+        if (parameter is not LogEntryViewModel entry)
+            return;
+
+        try
+        {
+            // Parse the timestamp from the selected entry
+            if (!LogEntryViewModel.TryParseTimestamp(entry.Timestamp, out DateTime timestamp))
+            {
+                StatusText = "Could not parse timestamp from selected entry";
+                return;
+            }
+
+            // Set the date/time filter to show entries from this timestamp onwards
+            _options.IsDateTimeFilterEnabled = true;
+            _options.FromDateTime = timestamp;
+            _options.ToDateTime = null;
+
+            // Save filter settings
+            SaveFilterSettings();
+
+            // Refresh display
+            _previousOutput = null; // Force refresh
+            SetupMonitoringForCurrentFile();
+            Refresh(null);
+
+            // Show status
+            StatusBarBackground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00AA66"));
+            StatusText = $"Showing logs from {timestamp:yyyy-MM-dd HH:mm:ss} onwards";
+
+            // Reset status after 2.5 seconds
+            Task.Delay(2500).ContinueWith(_ =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    UpdateStatusBarColor();
+                    UpdateStatusText();
+                });
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusText = $"Error applying log filter: {ex.Message}";
         }
     }
     
