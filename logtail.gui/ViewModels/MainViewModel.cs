@@ -233,6 +233,15 @@ public class MainViewModel : INotifyPropertyChanged
 
     public async void Start()
     {
+        // Load settings to check if we should auto-open the last file
+        var settings = _settingsManager.LoadSettings();
+        
+        // Only auto-open files if the setting is enabled
+        if (!settings.Preferences.OpenLastFileOnStartup)
+        {
+            return;
+        }
+        
         // If no file is currently set, try to load the most recent file
         if (string.IsNullOrEmpty(_options.FilePath))
         {
@@ -565,6 +574,10 @@ public class MainViewModel : INotifyPropertyChanged
 
         // Load current options
         settingsViewModel.LoadFromOptions(_options);
+        
+        // Load current settings
+        var currentSettings = GetCurrentSettings();
+        settingsViewModel.LoadFromSettings(currentSettings);
 
         var dialog = new SettingsDialog(settingsViewModel)
         {
@@ -578,6 +591,9 @@ public class MainViewModel : INotifyPropertyChanged
 
             // Apply settings
             settingsViewModel.ApplyToOptions(_options);
+            
+            // Apply to settings
+            settingsViewModel.ApplyToSettings(currentSettings);
 
             // Update the parser if format changed
             if (formatChanged)
@@ -587,7 +603,7 @@ public class MainViewModel : INotifyPropertyChanged
             }
 
             // Save app preferences
-            SaveAppPreferences();
+            _settingsManager.SaveSettings(currentSettings);
 
             // Refresh display
             _previousOutput = null; // Force refresh

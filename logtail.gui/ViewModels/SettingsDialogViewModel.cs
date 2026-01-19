@@ -12,6 +12,7 @@ public class SettingsDialogViewModel : INotifyPropertyChanged
     private int _refreshRateSeconds = 2;
     private MonitoringMode _monitoringMode = MonitoringMode.Auto;
     private string _selectedLogFormat = "Default";
+    private bool _openLastFileOnStartup = true;
     
     public ICommand? ApplyCommand { get; set; }
     public ICommand? CancelCommand { get; set; }
@@ -61,6 +62,16 @@ public class SettingsDialogViewModel : INotifyPropertyChanged
         }
     }
 
+    public bool OpenLastFileOnStartup
+    {
+        get => _openLastFileOnStartup;
+        set
+        {
+            _openLastFileOnStartup = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool IsAutoMode
     {
         get => MonitoringMode == MonitoringMode.Auto;
@@ -105,12 +116,22 @@ public class SettingsDialogViewModel : INotifyPropertyChanged
         SelectedLogFormat = options.LogFormatName;
     }
 
+    public void LoadFromSettings(logtail.gui.Models.ApplicationSettings settings)
+    {
+        OpenLastFileOnStartup = settings.Preferences.OpenLastFileOnStartup;
+    }
+
     public void ApplyToOptions(LogTailOptions options)
     {
         options.TailLines = TailLines;
         options.RefreshRate = TimeSpan.FromSeconds(RefreshRateSeconds);
         options.MonitoringMode = MonitoringMode;
         options.LogFormatName = SelectedLogFormat;
+    }
+
+    public void ApplyToSettings(logtail.gui.Models.ApplicationSettings settings)
+    {
+        settings.Preferences.OpenLastFileOnStartup = OpenLastFileOnStartup;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

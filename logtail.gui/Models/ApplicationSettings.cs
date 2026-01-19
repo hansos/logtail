@@ -48,6 +48,7 @@ public class AppPreferences
     public int RefreshRateSeconds { get; set; } = 2;
     public int TailLines { get; set; } = 100;
     public string? LastOpenedFile { get; set; }
+    public bool OpenLastFileOnStartup { get; set; } = true;
     public MonitoringMode MonitoringMode { get; set; } = MonitoringMode.Auto;
     public int PauseBufferSize { get; set; } = 10000;
     public bool ShowPauseNotification { get; set; } = true;

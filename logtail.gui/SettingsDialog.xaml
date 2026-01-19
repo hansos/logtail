@@ -145,6 +145,10 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Margin" Value="5,2"/>
         </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="5,2"/>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="15">
@@ -216,6 +220,19 @@
                         <RadioButton Content="Auto (real-time for local files, polling for network)" IsChecked="{Binding IsAutoMode}"/>
                         <RadioButton Content="Real-time only (FileSystemWatcher)" IsChecked="{Binding IsRealTimeMode}"/>
                         <RadioButton Content="Polling only (timer)" IsChecked="{Binding IsPollingMode}"/>
+                    </StackPanel>
+                </GroupBox>
+                
+                <!-- Startup Settings -->
+                <GroupBox Header="Startup Settings">
+                    <StackPanel Margin="5">
+                        <CheckBox Content="Open last used file on startup" 
+                                  IsChecked="{Binding OpenLastFileOnStartup}"/>
+                        <TextBlock Text="Automatically opens the most recently used log file when LogTail starts" 
+                                   Foreground="Gray" 
+                                   FontSize="10"
+                                   TextWrapping="Wrap"
+                                   Margin="22,2,5,5"/>
                     </StackPanel>
                 </GroupBox>
             </StackPanel>
